@@ -2467,6 +2467,36 @@ window.openUserProfileModal = () => {
         });
     }
 
+    // ĐẢM BẢO tất cả input trong modal profile hoạt động cho cả admin và user thường
+    setTimeout(() => {
+        const profileModal = document.getElementById('user-profile-modal');
+        if (profileModal) {
+            // Enable tất cả input, button, textarea trong modal
+            const profileElements = profileModal.querySelectorAll('input, button, textarea, label');
+            profileElements.forEach(el => {
+                el.disabled = false;
+                el.readOnly = false;
+                el.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-800', 'pointer-events-none');
+                el.style.pointerEvents = 'auto';
+                el.style.cursor = 'pointer';
+            });
+            
+            // Đặc biệt cho file input và preview avatar
+            const fileInput = profileModal.querySelector('input[type="file"]');
+            if (fileInput) {
+                fileInput.disabled = false;
+                fileInput.style.pointerEvents = 'auto';
+            }
+            
+            const avatarPreview = profileModal.querySelector('#profile-preview-avatar');
+            if (avatarPreview && avatarPreview.parentElement) {
+                avatarPreview.parentElement.style.pointerEvents = 'auto';
+                avatarPreview.parentElement.style.cursor = 'pointer';
+                avatarPreview.parentElement.classList.remove('pointer-events-none');
+            }
+        }
+    }, 100);
+
     document.getElementById('user-profile-modal').classList.remove('hidden');
     document.getElementById('user-profile-modal').classList.add('flex');
     document.body.style.overflow = 'hidden';
@@ -2512,6 +2542,19 @@ window.handleProfileImageChange = async (event) => {
             cropModal.classList.remove('hidden');
             cropModal.classList.add('flex');
             document.body.style.overflow = 'hidden';
+
+            // ĐẢM BẢO tất cả elements trong crop modal hoạt động
+            setTimeout(() => {
+                const cropModalElements = cropModal.querySelectorAll('button, input, *');
+                cropModalElements.forEach(el => {
+                    el.disabled = false;
+                    el.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+                    el.style.pointerEvents = 'auto';
+                    if (el.tagName === 'BUTTON') {
+                        el.style.cursor = 'pointer';
+                    }
+                });
+            }, 50);
 
             // Khởi tạo cropper sau khi ảnh load xong
             cropImage.onload = () => {
