@@ -2615,20 +2615,8 @@ window.updateUserStatus = async (userId, status) => {
             lastUpdated: serverTimestamp()
         };
         
-        // Nếu status là banned, cũng update role thành banned
-        if (status === 'banned') {
-            updateData.role = 'banned';
-        }
-        // Nếu status là active và role đang là banned, đặt lại role về viewer
-        else if (status === 'active') {
-            const userDoc = await getDoc(doc(db, "users", userId));
-            if (userDoc.exists() && userDoc.data().role === 'banned') {
-                updateData.role = 'viewer';
-            }
-        }
-        
         await updateDoc(doc(db, "users", userId), updateData);
-        showMessage("Đã cập nhật trạng thái người dùng!");
+        showMessage(`Đã cập nhật trạng thái người dùng thành: ${status === 'banned' ? 'Bị cấm' : 'Hoạt động'}!`);
         
         // Log activity
         await logActivity('update', `Cập nhật trạng thái người dùng: ${status}`, {

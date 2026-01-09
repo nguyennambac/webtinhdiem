@@ -71,7 +71,7 @@ const saveUserToFirestore = async (user) => {
 // Check auth status
 const checkAuthStatus = async (user) => {
     if (user) {
-        // Check user role before allowing login
+        // Check user status before allowing login
         try {
             const userRef = doc(db, "users", user.uid);
             const userDoc = await getDoc(userRef);
@@ -79,8 +79,8 @@ const checkAuthStatus = async (user) => {
             if (userDoc.exists()) {
                 const userData = userDoc.data();
                 
-                // Check if user is banned
-                if (userData.role === 'banned') {
+                // Check if user is banned using status field
+                if (userData.status === 'banned') {
                     // Sign out the user
                     await auth.signOut();
                     
@@ -92,7 +92,7 @@ const checkAuthStatus = async (user) => {
                 }
             }
         } catch (error) {
-            console.error("Error checking user role:", error);
+            console.error("Error checking user status:", error);
         }
         
         const saveResult = await saveUserToFirestore(user);
