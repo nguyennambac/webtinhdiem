@@ -71,6 +71,30 @@ const saveUserToFirestore = async (user) => {
 // Check auth status
 const checkAuthStatus = async (user) => {
     if (user) {
+        // Check user role before allowing login
+        try {
+            const userRef = doc(db, "users", user.uid);
+            const userDoc = await getDoc(userRef);
+            
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                
+                // Check if user is banned
+                if (userData.role === 'banned') {
+                    // Sign out the user
+                    await auth.signOut();
+                    
+                    // Show banned message
+                    displayError("❌ Tài khoản của bạn đã bị cấm. Vui lòng liên hệ admin để biết thêm chi tiết.");
+                    loginButton.classList.remove('hidden');
+                    loadingSpinner.classList.add('hidden');
+                    return;
+                }
+            }
+        } catch (error) {
+            console.error("Error checking user role:", error);
+        }
+        
         const saveResult = await saveUserToFirestore(user);
 
         if (saveResult.success) {
