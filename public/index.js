@@ -4050,7 +4050,7 @@ const disableEditFunctions = () => {
     });
 
     // VÔ hiệu hóa tất cả các button TRỪ button menu mobile, button profile, và button record holder
-    const allButtons = document.querySelectorAll('button:not(#logout-btn):not(#notification-bell):not(.notification-item button):not(.lg\\:hidden):not([onclick*="openUserProfileModal"]):not([onclick*="openRecordHolderModal"])');
+    const allButtons = document.querySelectorAll('button:not(#logout-btn):not(#notification-bell):not(.notification-item button):not(.lg\\:hidden):not([onclick*="openUserProfileModal"]):not([onclick*="openRecordHolderModal"]):not([onclick*="userProfileManager"])');
     allButtons.forEach(button => {
         button.disabled = true;
         button.classList.add('opacity-50', 'cursor-not-allowed');
@@ -4062,6 +4062,15 @@ const disableEditFunctions = () => {
     // Đảm bảo button profile (avatar) hoạt động cho cả admin và user
     const profileButtons = document.querySelectorAll('[onclick*="openUserProfileModal"]');
     profileButtons.forEach(button => {
+        button.disabled = false;
+        button.classList.remove('opacity-50', 'cursor-not-allowed');
+        button.style.pointerEvents = 'auto';
+        button.style.cursor = 'pointer';
+    });
+
+    // Đảm bảo button "Hồ Sơ Cá Nhân" từ userProfileManager hoạt động
+    const userProfileButtons = document.querySelectorAll('[onclick*="userProfileManager"]');
+    userProfileButtons.forEach(button => {
         button.disabled = false;
         button.classList.remove('opacity-50', 'cursor-not-allowed');
         button.style.pointerEvents = 'auto';
