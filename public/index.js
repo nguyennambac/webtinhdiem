@@ -3764,9 +3764,19 @@ const initFirebase = async () => {
         const app = initializeApp(firebaseConfig);
         db = getFirestore(app);
         auth = getAuth(app);
+        
+        // Gán vào window để các module khác truy cập
+        window.db = db;
+        window.auth = auth;
+        
         setPersistence(auth, browserLocalPersistence).catch(error => {
             console.warn("Không thể thiết lập persistence. Tiếp tục khởi tạo.", error);
         });
+
+        // Dispatch event for other modules
+        window.dispatchEvent(new CustomEvent('firebaseInitialized', { 
+            detail: { db, auth, app } 
+        }));
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -3792,6 +3802,15 @@ const initFirebase = async () => {
                     isAdminUser = isAdmin; // Lưu biến toàn cục
                     userId = user.uid;
                     isAuthReady = true;
+
+                    // Dispatch user loaded event for user-profile module
+                    window.dispatchEvent(new CustomEvent('userLoaded', { 
+                        detail: {
+                            ...user,
+                            isAdmin,
+                            userData: userDoc.exists() ? userDoc.data() : {}
+                        }
+                    }));
 
                     // Lấy dữ liệu từ Firestore
                     await fetchGameDataFromFirestore();

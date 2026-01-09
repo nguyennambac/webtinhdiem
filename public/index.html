@@ -1417,6 +1417,10 @@
                         <i class="fas fa-database w-5 h-5 mr-3 text-yellow-400"></i>
                         <span>Quản lý Dữ liệu</span>
                     </a>
+                    <button onclick="if(window.userProfileManager) window.userProfileManager.createProfilePage()" class="sidebar-link-modern w-full text-left">
+                        <i class="fas fa-user-circle w-5 h-5 mr-3 text-pink-400"></i>
+                        <span>Hồ Sơ Cá Nhân</span>
+                    </button>
                 </nav>
 
                 <div class="space-y-3 pt-6 border-t border-slate-800/50">
@@ -2193,9 +2197,10 @@
 
                 // Xử lý click cho navigation
                 link.addEventListener('click', function (e) {
-                    if (this.getAttribute('href').startsWith('#')) {
+                    const href = this.getAttribute('href');
+                    if (href && href.startsWith('#')) {
                         e.preventDefault();
-                        const targetId = this.getAttribute('href');
+                        const targetId = href;
                         const targetElement = document.querySelector(targetId);
                         if (targetElement) {
                             // Remove active class from all links

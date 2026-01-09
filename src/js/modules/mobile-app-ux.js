@@ -177,10 +177,6 @@ class MobileAppUX {
         <i class="fas fa-search text-xl"></i>
         <span class="text-xs mt-1">Tìm</span>
       </button>
-      <button class="mobile-nav-btn flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-cyan-400 transition-colors" data-page="analytics">
-        <i class="fas fa-chart-bar text-xl"></i>
-        <span class="text-xs mt-1">Thống Kê</span>
-      </button>
       <button class="mobile-nav-btn flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-cyan-400 transition-colors" data-page="profile">
         <i class="fas fa-user text-xl"></i>
         <span class="text-xs mt-1">Hồ Sơ</span>
@@ -224,18 +220,13 @@ class MobileAppUX {
         window.location.href = './index.html';
         break;
       case 'search':
-        if (searchFiltersManager) {
-          searchFiltersManager.performSearch('');
-        }
-        break;
-      case 'analytics':
-        if (analyticsDashboard) {
-          analyticsDashboard.createDashboard();
+        if (window.searchFiltersManager) {
+          window.searchFiltersManager.performSearch('');
         }
         break;
       case 'profile':
-        if (userProfileManager) {
-          userProfileManager.createProfilePage();
+        if (window.userProfileManager) {
+          window.userProfileManager.createProfilePage();
         }
         break;
       case 'menu':
@@ -260,19 +251,9 @@ class MobileAppUX {
           </button>
         </div>
 
-        <button class="w-full text-left px-4 py-3 text-slate-300 hover:bg-slate-800 rounded transition-colors flex items-center gap-3">
+        <button class="w-full text-left px-4 py-3 text-slate-300 hover:bg-slate-800 rounded transition-colors flex items-center gap-3" onclick="if(window.themeManager) window.themeManager.toggleTheme(); document.getElementById('mobile-menu-modal')?.remove()">
           <i class="fas fa-moon text-cyan-400"></i>
-          <span>Chế Độ Tối</span>
-        </button>
-
-        <button class="w-full text-left px-4 py-3 text-slate-300 hover:bg-slate-800 rounded transition-colors flex items-center gap-3" onclick="if(dataExportImport) dataExportImport.exportToJSON(JSON.parse(localStorage.getItem('allRaces')||'[]')); document.getElementById('mobile-menu-modal')?.remove()">
-          <i class="fas fa-download text-cyan-400"></i>
-          <span>Xuất Dữ Liệu</span>
-        </button>
-
-        <button class="w-full text-left px-4 py-3 text-slate-300 hover:bg-slate-800 rounded transition-colors flex items-center gap-3" onclick="if(performanceOptimizer) performanceOptimizer.getAnalyticsSummary(24).then(s=>console.log(s)); document.getElementById('mobile-menu-modal')?.remove()">
-          <i class="fas fa-activity text-cyan-400"></i>
-          <span>Thống Kê Hiệu Suất</span>
+          <span>Chế Độ Sáng/Tối</span>
         </button>
 
         <button class="w-full text-left px-4 py-3 text-slate-300 hover:bg-slate-800 rounded transition-colors flex items-center gap-3" onclick="window.location.href='./login.html'">
