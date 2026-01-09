@@ -1161,10 +1161,18 @@ class UserProfileManager {
             if (!user) {
                 console.warn('⚠️ Không tìm thấy user đang đăng nhập');
                 this.userStats = this.getPlaceholderStats();
+                if (window.notificationSystem) {
+                    window.notificationSystem.addNotification({
+                        type: 'warning',
+                        title: 'Thông báo',
+                        message: 'Vui lòng đăng nhập để xem hồ sơ cá nhân'
+                    });
+                }
                 return;
             }
 
             console.log('👤 User hiện tại:', user.displayName || user.email);
+            console.log('✅ Người dùng có quyền truy cập hồ sơ cá nhân');
 
             // Import Firestore functions
             const { getFirestore, doc, getDoc, collection, getDocs } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
@@ -1182,9 +1190,13 @@ class UserProfileManager {
                     userNickname = userData.nickname || user.displayName || '';
                     console.log('✅ Đã tải user profile từ Firestore');
                     console.log('🏷️ Nickname:', userNickname);
+                    console.log('✅ Người dùng bình thường có đầy đủ quyền truy cập và chỉnh sửa hồ sơ');
                 }
             } catch (error) {
                 console.log('⚠️ Không thể tải profile data:', error);
+                // Vẫn tiếp tục với displayName nếu có lỗi
+                userNickname = user.displayName || '';
+                console.log('ℹ️ Sử dụng displayName thay thế:', userNickname);
             }
 
             if (!userNickname) {
@@ -1382,7 +1394,8 @@ class UserProfileManager {
             streak: 0,
             favoriteCars: [],
             favoritePets: [],
-            bio: '',
+            recordMaps: [],
+            bio: 'Chào mừng bạn đến với hồ sơ cá nhân! Hãy tham gia đua xe để xem thống kê của bạn.',
             socialLinks: {}
         };
     }
