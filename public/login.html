@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZingSpeed Mobile - Login | Turbo Edition</title>
+    <link rel="icon" href="assets/images/logows.png" type="image/png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Racing+Sans+One&family=Rajdhani:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <style>
+        :root {
+            --neon-cyan: #00f3ff;
+            --neon-blue: #0066ff;
+            --neon-purple: #9d00ff;
+            --neon-red: #ff0033;
+            --dark-space: #0a0a14;
+            --racing-bg: #050510;
+            --glass-bg: rgba(10, 10, 20, 0.4);
+            --glass-border: rgba(0, 243, 255, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background: var(--racing-bg);
+            color: white;
+            position: relative;
+            scroll-behavior: smooth;
+        }
+
+        /* Animated Gradient Background */
+        .animated-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(0, 102, 255, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(157, 0, 255, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 40% 80%, rgba(255, 0, 51, 0.1) 0%, transparent 40%),
+                linear-gradient(135deg, #050510 0%, #0a0a1a 50%, #050510 100%);
+            z-index: 1;
+            animation: gradientShift 20s ease-in-out infinite alternate;
+        }
+
+        /* Animated Grid Overlay */
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            z-index: 2;
+            animation: gridMove 30s linear infinite;
+            opacity: 0.5;
+        }
+
+        /* Floating Particles */
+        .floating-particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--neon-cyan);
+            border-radius: 50%;
+            filter: blur(1px);
+            opacity: 0;
+            animation: particleFloat 15s linear infinite;
+            z-index: 3;
+        }
+
+        /* Speed Trails */
+        .speed-trail {
+            position: absolute;
+            width: 300px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+            filter: blur(1px);
+            opacity: 0;
+            animation: speedTrail 2s linear infinite;
+            z-index: 4;
+        }
+
+        /* Glassmorphism Container */
+        .glass-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow:
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(0, 243, 255, 0.1),
+                inset 0 0 20px rgba(0, 243, 255, 0.05);
+        }
+
+        /* Enhanced Neon Border */
+        .enhanced-neon-border {
+            position: relative;
+            border-radius: 24px;
+            overflow: hidden;
+        }
+
+        .enhanced-neon-border::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 24px;
+            padding: 2px;
+            background: linear-gradient(45deg,
+                    var(--neon-cyan),
+                    var(--neon-purple),
+                    var(--neon-blue),
+                    var(--neon-red));
+            -webkit-mask:
+                linear-gradient(#fff 0 0) content-box,
+                linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            animation: borderGlow 3s ease-in-out infinite alternate;
+            z-index: -1;
+        }
+
+        /* Enhanced Speed Button */
+        .enhanced-speed-btn {
+            position: relative;
+            padding: 18px 24px;
+            background: linear-gradient(135deg,
+                    rgba(0, 243, 255, 0.1),
+                    rgba(157, 0, 255, 0.05));
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            border-radius: 16px;
+            color: white;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .enhanced-speed-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg,
+                    transparent,
+                    rgba(255, 255, 255, 0.1),
+                    transparent);
+            transition: left 0.7s;
+        }
+
+        .enhanced-speed-btn:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow:
+                0 12px 40px rgba(0, 243, 255, 0.3),
+                0 0 60px rgba(0, 102, 255, 0.2),
+                inset 0 0 30px rgba(0, 243, 255, 0.1);
+            border-color: var(--neon-cyan);
+        }
+
+        .enhanced-speed-btn:hover::before {
+            left: 100%;
+        }
+
+        .enhanced-speed-btn:active {
+            transform: translateY(-2px) scale(1);
+            transition: all 0.1s;
+        }
+
+        /* Pulse Animation for Logo */
+        .logo-pulse {
+            animation: logoPulse 4s ease-in-out infinite;
+            filter: drop-shadow(0 0 20px rgba(0, 243, 255, 0.6));
+        }
+
+        /* Loading Animation */
+        .enhanced-loading {
+            position: relative;
+            width: 100px;
+            height: 100px;
+        }
+
+        .enhanced-loading-ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 3px solid transparent;
+            border-top-color: var(--neon-cyan);
+            border-radius: 50%;
+            animation: spin 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        .enhanced-loading-ring:nth-child(2) {
+            border-top-color: var(--neon-purple);
+            animation-delay: 0.2s;
+        }
+
+        .enhanced-loading-ring:nth-child(3) {
+            border-top-color: var(--neon-blue);
+            animation-delay: 0.4s;
+        }
+
+        /* Floating Cards */
+        .floating-card {
+            animation: float 6s ease-in-out infinite;
+            transition: transform 0.3s ease;
+        }
+
+        .floating-card:hover {
+            animation-play-state: paused;
+            transform: translateY(-10px);
+        }
+
+        /* Stats Card */
+        .stats-card {
+            background: linear-gradient(135deg,
+                    rgba(0, 243, 255, 0.05),
+                    rgba(157, 0, 255, 0.05));
+            border: 1px solid rgba(0, 243, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 243, 255, 0.2);
+            border-color: var(--neon-cyan);
+        }
+
+        /* Enhanced Typing Effect */
+        .enhanced-typing {
+            overflow: hidden;
+            border-right: 2px solid var(--neon-cyan);
+            white-space: nowrap;
+            animation:
+                enhancedTyping 3.5s steps(40, end),
+                enhancedBlink 1s step-end infinite;
+        }
+
+        /* Responsive Design Improvements */
+        @media (max-width: 768px) {
+            .mobile-optimized {
+                padding: 20px !important;
+            }
+
+            .mobile-stack {
+                flex-direction: column !important;
+                gap: 16px !important;
+                align-items: center;
+                /* Center items when stacked */
+            }
+
+            .mobile-text-center {
+                text-align: center !important;
+            }
+
+            .mobile-full-width {
+                width: 100% !important;
+            }
+
+            h1.racing-text {
+                font-size: 3rem;
+                /* 48px */
+            }
+
+            .enhanced-typing {
+                font-size: 1.25rem;
+                /* 20px */
+            }
+
+            .logo-pulse {
+                width: 9rem;
+                /* 144px */
+                height: 9rem;
+                /* 144px */
+            }
+
+            /* Adjust quote icons */
+            .fa-quote-left,
+            .fa-quote-right {
+                position: static !important;
+                margin: 0 4px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .enhanced-neon-border {
+                padding: 1.5rem !important;
+                /* 24px */
+            }
+
+            h1.racing-text {
+                font-size: 2.25rem;
+                /* 36px */
+            }
+
+            .enhanced-typing {
+                font-size: 1.125rem;
+                /* 18px */
+            }
+
+            .logo-pulse {
+                width: 7rem;
+                /* 112px */
+                height: 7rem;
+                /* 112px */
+                margin-bottom: 1rem;
+            }
+
+            #google-login-btn img {
+                width: 3rem;
+                /* 48px */
+                height: 3rem;
+                /* 48px */
+            }
+
+            #google-login-btn .text-left {
+                text-align: center;
+            }
+
+            #google-login-btn .fa-chevron-right {
+                display: none;
+                /* Hide arrow on very small screens */
+            }
+
+            .stats-card {
+                padding: 16px;
+            }
+
+            .stats-card .text-4xl {
+                font-size: 2rem;
+            }
+
+            .absolute.-left-8,
+            .absolute.-right-8 {
+                display: none;
+                /* Hide quote icons completely */
+            }
+
+            .footer p {
+                font-size: 0.75rem;
+                /* 12px */
+            }
+        }
+
+        /* Keyframe Animations */
+        @keyframes gradientShift {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            100% {
+                background-position: 100% 50%;
+            }
+        }
+
+        @keyframes gridMove {
+            0% {
+                transform: translate(0, 0);
+            }
+
+            100% {
+                transform: translate(60px, 60px);
+            }
+        }
+
+        @keyframes particleFloat {
+            0% {
+                transform: translate(0, 0) rotate(0deg);
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 0.8;
+            }
+
+            90% {
+                opacity: 0.8;
+            }
+
+            100% {
+                transform: translate(100px, -100vh) rotate(180deg);
+                opacity: 0;
+            }
+        }
+
+        @keyframes speedTrail {
+            0% {
+                transform: translateX(-100%) rotate(0deg);
+                opacity: 0;
+            }
+
+            10%,
+            90% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateX(100vw) rotate(10deg);
+                opacity: 0;
+            }
+        }
+
+        @keyframes borderGlow {
+            0% {
+                opacity: 0.3;
+                filter: hue-rotate(0deg);
+            }
+
+            100% {
+                opacity: 0.8;
+                filter: hue-rotate(360deg);
+            }
+        }
+
+        @keyframes logoPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                filter: drop-shadow(0 0 20px rgba(0, 243, 255, 0.6));
+            }
+
+            50% {
+                transform: scale(1.05);
+                filter: drop-shadow(0 0 30px rgba(0, 243, 255, 0.8));
+            }
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0) rotate(0deg);
+            }
+
+            50% {
+                transform: translateY(-20px) rotate(2deg);
+            }
+        }
+
+        @keyframes enhancedTyping {
+            from {
+                width: 0;
+            }
+
+            to {
+                width: 100%;
+            }
+        }
+
+        @keyframes enhancedBlink {
+
+            from,
+            to {
+                border-color: transparent;
+            }
+
+            50% {
+                border-color: var(--neon-cyan);
+            }
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Smooth Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(10, 10, 20, 0.5);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-red));
+        }
+
+        /* Focus States for Accessibility */
+        *:focus {
+            outline: 2px solid var(--neon-cyan);
+            outline-offset: 2px;
+        }
+
+        *:focus:not(.focus-visible) {
+            outline: none;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Enhanced Background -->
+    <div class="animated-bg"></div>
+    <div class="grid-overlay"></div>
+
+    <!-- Floating Particles -->
+    <div id="floatingParticles"></div>
+
+    <!-- Speed Trails -->
+    <div id="speedTrails"></div>
+
+    <!-- Main Container -->
+    <div class="min-h-screen relative z-10 flex items-center justify-center p-4 md:p-6">
+        <!-- Left Side - Speedometer (Desktop only) -->
+        <div class="hidden lg:block absolute left-8 xl:left-16 2xl:left-24 top-1/2 transform -translate-y-1/2">
+            <div class="floating-card">
+                <div class="glass-container p-6">
+                    <div class="relative w-64 h-64">
+                        <div class="absolute inset-0 rounded-full border-4 border-cyan-500/30 animate-pulse"></div>
+                        <div class="absolute inset-8 rounded-full border-2 border-purple-500/30 animate-pulse"
+                            style="animation-delay: 0.5s;"></div>
+                        <div class="speedo-needle absolute left-1/2 top-8 transform -translate-x-1/2 origin-bottom"
+                            id="needle"></div>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="text-center">
+                                <div class="racing-text text-4xl font-bold mb-3">V-MAX</div>
+                                <div class="text-cyan-400 text-sm font-semibold tracking-widest animate-pulse">
+                                    READY TO RACE
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Login Container -->
+        <div class="relative w-full max-w-xl z-20">
+            <!-- Glowing Background Effect -->
+            <div class="absolute -inset-4 bg-gradient-to-r from-cyan-500/20 via-purple-500/20 to-red-500/20 
+                        rounded-3xl blur-3xl opacity-70 animate-pulse"></div>
+
+            <!-- Enhanced Login Card -->
+            <div class="enhanced-neon-border glass-container p-8 md:p-10 mobile-optimized">
+                <!-- Header Section -->
+                <div class="text-center mb-10">
+                    <!-- Animated Logo -->
+                    <div class="relative w-48 h-48 mx-auto mb-8">
+                        <div class="logo-pulse w-full h-full">
+                            <img src="assets/images/logows.png" alt="ZingSpeed Logo"
+                                class="w-full h-full object-contain">
+                        </div>
+                    </div>
+
+                    <!-- Title -->
+                    <h1 class="racing-text text-5xl md:text-6xl font-bold mb-4 tracking-wider"
+                        style="animation: slideInUp 1s ease-out;">
+                        WESTAR TEAM
+                    </h1>
+
+                    <!-- Subtitle -->
+                    <div class="enhanced-typing text-2xl font-semibold text-cyan-300 mb-4 inline-block">
+                        LOGIN SYSTEM
+                    </div>
+
+                    <!-- Description -->
+                    <p class="text-gray-300 text-base md:text-lg tracking-wide mt-4"
+                        style="animation: fadeIn 1.5s ease-out;">
+                        Enter the ultimate racing experience • Maximum speed secured
+                    </p>
+                </div>
+
+                <!-- Loading Spinner -->
+                <div id="loading-spinner" class="hidden flex-col items-center justify-center py-10 mb-8">
+                    <div class="enhanced-loading mb-6">
+                        <div class="enhanced-loading-ring"></div>
+                        <div class="enhanced-loading-ring"></div>
+                        <div class="enhanced-loading-ring"></div>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <i class="fas fa-flag-checkered text-cyan-400 text-3xl"></i>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-cyan-300 font-bold text-xl tracking-wider mb-4">INITIALIZING SYSTEMS...</p>
+                        <div class="relative w-64 h-2 bg-gray-800/50 rounded-full overflow-hidden">
+                            <div class="absolute inset-0 bg-gradient-to-r from-cyan-500 via-purple-500 to-cyan-500 
+                                        animate-progress rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error Message -->
+                <div id="error-message" class="hidden mb-8">
+                    <div class="flex items-center p-5 rounded-2xl bg-gradient-to-r from-red-900/40 to-red-800/20 
+                                border border-red-500/50 backdrop-blur-sm" style="animation: slideInUp 0.5s ease-out;">
+                        <i class="fas fa-exclamation-triangle text-red-400 text-3xl mr-4 animate-pulse"></i>
+                        <div>
+                            <p class="text-red-200 font-bold text-lg">SYSTEM ERROR</p>
+                            <p class="text-red-300 text-base mt-2" id="error-details">
+                                Authentication failed. Try again.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Login Buttons -->
+                <div class="space-y-6">
+                    <!-- Google Login Button -->
+                    <div class="relative group">
+                        <div class="absolute -inset-1 bg-gradient-to-r from-cyan-600 to-purple-600 rounded-xl 
+                                    blur opacity-0 group-hover:opacity-70 transition duration-500"></div>
+
+                        <button id="google-login-btn" class="enhanced-speed-btn relative w-full flex items-center justify-between 
+                                       px-8 py-6 text-lg group mobile-stack">
+                            <!-- Icon Container -->
+                            <div class="flex items-center space-x-6">
+                                <div class="relative">
+                                    <div class="absolute inset-0 bg-cyan-500 rounded-full blur-md 
+                                                group-hover:blur-xl transition duration-300"></div>
+                                    <img src="assets/images/logogg.png" alt="Google" class="relative h-14 w-14 z-10 transform group-hover:scale-110 
+                                               transition duration-300" />
+                                </div>
+
+                                <!-- Text Content -->
+                                <div class="text-left">
+                                    <div class="text-white font-bold text-xl tracking-wider">
+                                        GOOGLE TURBO LOGIN
+                                    </div>
+                                    <div class="text-cyan-300 text-sm font-medium mt-2">
+                                        Full speed access • Secure connection
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Arrow Icon -->
+                            <div class="text-cyan-400 transform group-hover:translate-x-3 
+                                        transition duration-300 ml-4">
+                                <i class="fas fa-chevron-right text-2xl"></i>
+                            </div>
+                        </button>
+                    </div>
+
+                    <!-- Racing Stats -->
+                    <div class="mt-10 pt-8 border-t border-cyan-900/50">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="stats-card text-center">
+                                <div class="text-cyan-400 text-4xl font-bold mb-3">∞</div>
+                                <div class="text-gray-400 text-sm font-semibold tracking-widest">UNLIMITED</div>
+                                <div class="text-cyan-300 text-xs mt-2">SPEED & PERFORMANCE</div>
+                            </div>
+                            <div class="stats-card text-center">
+                                <div class="text-cyan-400 text-4xl font-bold mb-3">⚡</div>
+                                <div class="text-gray-400 text-sm font-semibold tracking-widest">TURBO MODE</div>
+                                <div class="text-cyan-300 text-xs mt-2">INSTANT RESPONSE</div>
+                            </div>
+                            <div class="stats-card text-center">
+                                <div class="text-cyan-400 text-4xl font-bold mb-3">🛡️</div>
+                                <div class="text-gray-400 text-sm font-semibold tracking-widest">SECURE</div>
+                                <div class="text-cyan-300 text-xs mt-2">MILITARY GRADE</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Racing Quote -->
+                    <div class="mt-8 text-center">
+                        <p class="text-gray-400 text-base italic relative">
+                            <i class="fas fa-quote-left text-cyan-500 mr-3 absolute -left-8"></i>
+                            Speed is just a number until you experience it
+                            <i class="fas fa-quote-right text-purple-500 ml-3 absolute -right-8"></i>
+                        </p>
+                        <p class="text-cyan-400 text-sm mt-4 font-semibold">
+                            — ZingSpeed Racing Team
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Decorative Elements -->
+            <div class="absolute -right-6 -top-6 w-40 h-40">
+                <div class="w-full h-full bg-gradient-to-br from-cyan-500/40 to-transparent 
+                            rounded-full blur-2xl animate-pulse"></div>
+            </div>
+            <div class="absolute -left-6 -bottom-6 w-36 h-36">
+                <div class="w-full h-full bg-gradient-to-tr from-purple-500/40 to-transparent 
+                            rounded-full blur-2xl animate-pulse" style="animation-delay: 1s;"></div>
+            </div>
+        </div>
+
+        <!-- Right Side - Stats (Desktop only) -->
+        <div class="hidden lg:block absolute right-8 xl:right-16 2xl:right-24 top-1/2 transform -translate-y-1/2">
+            <div class="floating-card glass-container p-8">
+                <div class="text-center mb-8">
+                    <div class="text-cyan-400 text-5xl font-bold mb-3 tracking-widest">v2.4.0</div>
+                    <div class="text-gray-400 text-sm uppercase tracking-widest">Turbo Edition</div>
+                </div>
+                <div class="space-y-5">
+                    <div class="flex items-center justify-between text-gray-300 hover:text-cyan-300 
+                                transition duration-300 cursor-pointer">
+                        <span class="text-base">Real-time Sync</span>
+                        <div class="w-4 h-4 bg-green-500 rounded-full animate-pulse"></div>
+                    </div>
+                    <div class="flex items-center justify-between text-gray-300 hover:text-cyan-300 
+                                transition duration-300 cursor-pointer">
+                        <span class="text-base">Cloud Powered</span>
+                        <i class="fas fa-cloud text-cyan-400 text-xl"></i>
+                    </div>
+                    <div class="flex items-center justify-between text-gray-300 hover:text-cyan-300 
+                                transition duration-300 cursor-pointer">
+                        <span class="text-base">Low Latency</span>
+                        <div class="text-green-400 font-bold text-lg animate-pulse">28ms</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="absolute bottom-6 left-0 right-0 text-center z-20">
+        <p class="text-gray-500 text-sm tracking-wider">
+            © 2026 WESTAR TEAM •
+            <span class="text-cyan-400 font-semibold">
+                MAXIMUM SPEED • MAXIMUM PERFORMANCE
+            </span>
+        </p>
+    </div>
+
+    <!-- Enhanced JavaScript for Animations -->
+    <script>
+        // Create floating particles
+        function createFloatingParticles() {
+            const container = document.getElementById('floatingParticles');
+            const particleCount = 50;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'floating-particle';
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.top = `${Math.random() * 100}%`;
+                particle.style.animationDelay = `${Math.random() * 15}s`;
+                particle.style.animationDuration = `${10 + Math.random() * 20}s`;
+
+                // Random color
+                const colors = ['#00f3ff', '#0066ff', '#9d00ff', '#ff0033'];
+                particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+
+                // Random size
+                const size = 2 + Math.random() * 4;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+
+                container.appendChild(particle);
+            }
+        }
+
+        // Create speed trails
+        function createSpeedTrails() {
+            const container = document.getElementById('speedTrails');
+            const trailCount = 8;
+
+            for (let i = 0; i < trailCount; i++) {
+                const trail = document.createElement('div');
+                trail.className = 'speed-trail';
+                trail.style.top = `${Math.random() * 100}%`;
+                trail.style.left = `-${Math.random() * 500}px`;
+                trail.style.animationDelay = `${Math.random() * 5}s`;
+                trail.style.animationDuration = `${1 + Math.random() * 3}s`;
+
+                // Random angle
+                const angle = -30 + Math.random() * 60;
+                trail.style.transform = `rotate(${angle}deg)`;
+
+                container.appendChild(trail);
+            }
+        }
+
+        // Enhanced speedometer animation
+        function animateEnhancedSpeedometer() {
+            const needle = document.getElementById('needle');
+            if (needle) {
+                // Reset needle style for enhanced version
+                needle.style.width = '6px';
+                needle.style.height = '120px';
+                needle.style.background = 'linear-gradient(to top, var(--neon-red), var(--neon-cyan))';
+                needle.style.borderRadius = '6px';
+                needle.style.filter = 'drop-shadow(0 0 10px var(--neon-red))';
+
+                gsap.to(needle, {
+                    rotation: Math.random() * 180 - 90,
+                    duration: 2.5,
+                    ease: "power2.inOut",
+                    onComplete: animateEnhancedSpeedometer
+                });
+            }
+        }
+
+        // Enhanced mouse parallax effect
+        document.addEventListener('mousemove', (e) => {
+            const x = (e.clientX / window.innerWidth - 0.5) * 40;
+            const y = (e.clientY / window.innerHeight - 0.5) * 40;
+
+            gsap.to('.floating-card', {
+                x: x * 0.5,
+                y: y * 0.5,
+                duration: 1.5,
+                ease: "power2.out"
+            });
+
+            gsap.to('.logo-pulse', {
+                x: x * 0.1,
+                y: y * 0.1,
+                duration: 1,
+                ease: "power2.out"
+            });
+        });
+
+        // Enhanced button press effect
+        function enhancedButtonPressEffect(button) {
+            gsap.to(button, {
+                scale: 0.95,
+                duration: 0.15,
+                yoyo: true,
+                repeat: 1,
+                ease: "power2.inOut",
+                onComplete: () => {
+                    gsap.to(button, {
+                        scale: 1,
+                        duration: 0.1,
+                        ease: "power2.out"
+                    });
+                }
+            });
+        }
+
+        // Initialize all effects
+        document.addEventListener('DOMContentLoaded', () => {
+            createFloatingParticles();
+            createSpeedTrails();
+            animateEnhancedSpeedometer();
+
+            // Initial page animation
+            gsap.from('body', {
+                opacity: 0,
+                duration: 1.5,
+                ease: "power2.inOut"
+            });
+
+            gsap.from('.relative.z-20', {
+                y: 60,
+                opacity: 0,
+                duration: 1.2,
+                delay: 0.3,
+                ease: "power3.out"
+            });
+
+            gsap.from('.glass-container', {
+                scale: 0.9,
+                opacity: 0,
+                duration: 1,
+                delay: 0.5,
+                ease: "back.out(1.7)"
+            });
+
+            // Continuous subtle animations
+            setInterval(() => {
+                gsap.to('.animate-pulse', {
+                    opacity: 0.6,
+                    duration: 1,
+                    yoyo: true,
+                    repeat: 1
+                });
+            }, 3000);
+        });
+
+        // Add keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            const loginBtn = document.getElementById('google-login-btn');
+
+            if (e.key === 'Enter' || e.key === ' ') {
+                if (document.activeElement === loginBtn || !document.activeElement.matches('button, input, a')) {
+                    e.preventDefault();
+                    loginBtn.click();
+                }
+            }
+        });
+
+        // Add responsive behavior
+        function handleResize() {
+            const isMobile = window.innerWidth < 768;
+            document.body.classList.toggle('mobile-view', isMobile);
+        }
+
+        window.addEventListener('resize', handleResize);
+        handleResize();
+
+        // Export functions for use in login.js
+        window.enhancedButtonPressEffect = enhancedButtonPressEffect;
+    </script>
+
+    <!-- ==================== MODULES ==================== -->
+    <script src="js/modules/theme-manager.js"></script>
+    <script src="js/modules/notification-system.js"></script>
+
+    <script src="js/modules/user-profile.js"></script>
+    <script src="js/modules/data-export-import.js"></script>
+    <script src="js/modules/performance-optimizer.js"></script>
+    <script src="js/modules/analytics-dashboard.js"></script>
+    <script src="js/modules/mobile-app-ux.js"></script>
+    <script src="js/modules/permission-system.js"></script>
+
+    <!-- Keep the original login.js script -->
+    <script type="module" src="./login.js"></script>
+</body>
+
+</html>
