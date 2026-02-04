@@ -3451,12 +3451,29 @@ const showSelectedBtcMap = (mapName) => {
     const wheelContainer = document.getElementById('btc-wheel-container');
     const selectedContainer = document.getElementById('selected-btc-map');
     const displayElement = document.getElementById('btc-map-display');
+    // Tìm element icon để thay thế bằng ảnh
+    const iconContainer = selectedContainer ? selectedContainer.querySelector('.w-12.h-12') : null;
 
     if (wheelContainer && selectedContainer && displayElement) {
         wheelContainer.classList.add('hidden');
         selectedContainer.classList.remove('hidden');
         selectedContainer.classList.add('wheel-result-announce');
         displayElement.textContent = mapName;
+
+        // **MỚI: Hiển thị hình ảnh map**
+        if (iconContainer) {
+            const mapInfo = ALL_MAPS.find(m => m.name === mapName);
+            if (mapInfo && mapInfo.imageUrl) {
+                iconContainer.innerHTML = `<img src="${mapInfo.imageUrl}" class="w-full h-full object-cover rounded-xl" alt="${mapName}">`;
+                iconContainer.classList.remove('bg-accent-blue/10', 'border-accent-blue/20');
+                iconContainer.classList.add('p-0', 'overflow-hidden', 'bg-transparent', 'border-0');
+            } else {
+                // Reset về icon nếu không có ảnh
+                iconContainer.innerHTML = `<i class="fas fa-flag-checkered text-accent-blue text-xl"></i>`;
+                iconContainer.classList.add('bg-accent-blue/10', 'border-accent-blue/20');
+                iconContainer.classList.remove('p-0', 'overflow-hidden', 'bg-transparent', 'border-0');
+            }
+        }
     }
 };
 
@@ -3477,6 +3494,14 @@ window.resetBtcMap = async () => {
     if (wheelContainer && selectedContainer) {
         wheelContainer.classList.remove('hidden');
         selectedContainer.classList.add('hidden');
+
+        // Reset icon container về trạng thái ban đầu
+        const iconContainer = selectedContainer.querySelector('.w-12.h-12');
+        if (iconContainer) {
+            iconContainer.innerHTML = `<i class="fas fa-flag-checkered text-accent-blue text-xl"></i>`;
+            iconContainer.classList.add('bg-accent-blue/10', 'border-accent-blue/20', 'w-12', 'h-12', 'rounded-xl', 'flex', 'items-center', 'justify-center', 'mr-4', 'border');
+            iconContainer.classList.remove('p-0', 'overflow-hidden', 'bg-transparent', 'border-0');
+        }
     }
 
     // Reset state
