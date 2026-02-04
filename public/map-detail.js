@@ -951,15 +951,26 @@ window.jumpToMap = async (index) => {
     const newUrl = `${window.location.pathname}?map=${index}`;
     window.history.pushState({ mapIndex: index }, '', newUrl);
 
-    // Enhanced Transition using GSAP
-    const container = document.getElementById('broadcast-container');
+    // Advanced Staggered Transition using GSAP
+    const leftCol = document.getElementById('player-column-left');
+    const midCol = document.getElementById('middle-column-broadcast');
+    const rightCol = document.getElementById('player-column-right');
+    const targets = [leftCol, midCol, rightCol];
 
-    // Phase 1: Fade out and slide down
-    await gsap.to(container, {
+    const tl = gsap.timeline();
+
+    // Phase 1: Staggered Out
+    await tl.to(targets, {
         opacity: 0,
-        y: 20,
-        duration: 0.3,
-        ease: "power2.in"
+        y: 40,
+        scale: 0.9,
+        filter: "blur(10px)",
+        duration: 0.4,
+        stagger: {
+            each: 0.1,
+            from: "center"
+        },
+        ease: "power3.in"
     });
 
     // Update Data
@@ -971,15 +982,40 @@ window.jumpToMap = async (index) => {
     updateNavigationButtons(currentMapIndex, raceState.maps.length);
 
     // Scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'auto' }); // Use auto to not fight with GSAP
 
-    // Phase 2: Reset position and fade in / slide up
-    gsap.set(container, { y: -20 }); // Start from slightly above
-    await gsap.to(container, {
+    // Phase 2: Staggered In with "Digital Bounce"
+    gsap.set(targets, {
+        y: -60,
+        scale: 1.1,
+        filter: "blur(20px) brightness(2) contrast(1.5)",
+        opacity: 0
+    });
+
+    // Digital "Glitch" Flash
+    gsap.fromTo("#broadcast-container",
+        { filter: "hue-rotate(90deg) brightness(3)" },
+        { filter: "hue-rotate(0deg) brightness(1)", duration: 0.4, ease: "rough" }
+    );
+
+    await tl.to(targets, {
         opacity: 1,
         y: 0,
-        duration: 0.5,
-        ease: "back.out(1.7)"
+        scale: 1,
+        filter: "blur(0px) brightness(1) contrast(1)",
+        duration: 0.6,
+        stagger: {
+            each: 0.15,
+            from: "edges"
+        },
+        ease: "back.out(1.2)"
+    });
+
+    // Sub-animation for hero image for extra "pop"
+    gsap.from("#map-hero-image", {
+        scale: 1.2,
+        duration: 2,
+        ease: "power2.out"
     });
 };
 
