@@ -200,6 +200,7 @@ class NotificationSystem {
                 toast.style.animation = 'slideOut 0.3s ease-out forwards';
                 setTimeout(() => toast.remove(), 300);
             }, notification.persistent ? Infinity : this.notificationDuration);
+        }
     }
 
     /**
@@ -210,7 +211,7 @@ class NotificationSystem {
         if (!badge) return;
 
         this.unreadCount = this.notifications.filter(n => !n.read).length;
-        
+
         if (this.unreadCount > 0) {
             badge.textContent = this.unreadCount > 99 ? '99+' : this.unreadCount;
             badge.style.display = 'flex';
@@ -294,13 +295,13 @@ class NotificationSystem {
         const now = new Date();
         const diff = now - new Date(timestamp);
         const minutes = Math.floor(diff / 60000);
-        
+
         if (minutes < 1) return 'Vừa xong';
         if (minutes < 60) return `${minutes}m trước`;
-        
+
         const hours = Math.floor(minutes / 60);
         if (hours < 24) return `${hours}h trước`;
-        
+
         const days = Math.floor(hours / 24);
         return `${days}d trước`;
     }
