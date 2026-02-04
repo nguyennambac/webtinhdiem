@@ -148,6 +148,8 @@ const fetchRacerStatistics = async () => {
 
         const recordsSnapshot = await getDocs(collection(db, "raceRecords"));
 
+        // Thống kê tay đua
+        const racerStats = new Map();
         // Thống kê combo xe/pet toàn cục
         const comboStats = new Map();
         // **MỚI: Thống kê combo theo từng Map**
@@ -202,8 +204,9 @@ const fetchRacerStatistics = async () => {
         mapComboStats.forEach((combosMap, mName) => {
             window.MAP_COMBOS[mName] = Array.from(combosMap.values())
                 .sort((a, b) => b.count - a.count)
-                .slice(0, 4); // Lấy top 4 combo mỗi map
+                .slice(0, 4);
         });
+        console.log("📊 Đã nạp Combo cho các Map:", Object.keys(window.MAP_COMBOS));
 
         // **MỚI: THỐNG KÊ TOP RECORD HOLDERS**
         const recordHolderStats = new Map();
