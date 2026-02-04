@@ -209,16 +209,43 @@ const renderTop5RecordsBroadcast = async (mapName) => {
             bestNameEl.textContent = best.racerName;
             bestRecordEl.textContent = best.timeString;
 
+            // Updated: Query user avatar by nickname
+            const recordRacerName = (best.racerName || "").trim().toLowerCase();
+            const userData = ALL_USERS.find(u => (u.nickname || "").trim().toLowerCase() === recordRacerName);
+            const avatarEl = document.getElementById('broadcast-best-racer-avatar');
+
+            if (avatarEl) {
+                if (userData && (userData.photoBase64 || userData.photoURL)) {
+                    avatarEl.innerHTML = `<img src="${userData.photoBase64 || userData.photoURL}" class="w-full h-full object-cover">`;
+                } else {
+                    avatarEl.innerHTML = `<i class="fas fa-user text-slate-600 text-xl"></i>`;
+                }
+            }
+
+            // Updated equipment names
+            const carNameEl = document.getElementById('broadcast-best-racer-car-name');
+            const petNameEl = document.getElementById('broadcast-best-racer-pet-name');
+            if (carNameEl) carNameEl.textContent = carName || '---';
+            if (petNameEl) petNameEl.textContent = petName || '---';
+
             let carUrl = findImg("gameCars", carName);
             let petUrl = findImg("gamePets", petName);
 
-            if (bestCarIcon) bestCarIcon.innerHTML = carUrl ? `<img src="${carUrl}" class="h-10 object-contain w-full">` : `<div class="text-xs text-slate-500">${carName || 'N/A'}</div>`;
-            if (bestPetIcon) bestPetIcon.innerHTML = petUrl ? `<img src="${petUrl}" class="h-10 object-contain w-full">` : `<div class="text-xs text-slate-500">${petName || 'N/A'}</div>`;
+            if (bestCarIcon) bestCarIcon.innerHTML = carUrl ? `<img src="${carUrl}" class="h-8 object-contain">` : `<i class="fas fa-car text-slate-700"></i>`;
+            if (bestPetIcon) bestPetIcon.innerHTML = petUrl ? `<img src="${petUrl}" class="h-8 object-contain">` : `<i class="fas fa-paw text-slate-700"></i>`;
         } else {
             bestNameEl.textContent = "CHƯA CÓ KỶ LỤC";
             bestRecordEl.textContent = "--:--.--";
-            if (bestCarIcon) bestCarIcon.innerHTML = '<i class="fas fa-car text-slate-300"></i>';
-            if (bestPetIcon) bestPetIcon.innerHTML = '<i class="fas fa-paw text-slate-300"></i>';
+            if (bestCarIcon) bestCarIcon.innerHTML = '<i class="fas fa-car text-slate-700"></i>';
+            if (bestPetIcon) bestPetIcon.innerHTML = '<i class="fas fa-paw text-slate-700"></i>';
+
+            const avatarEl = document.getElementById('broadcast-best-racer-avatar');
+            if (avatarEl) avatarEl.innerHTML = `<i class="fas fa-user text-slate-600 text-xl"></i>`;
+
+            const carNameEl = document.getElementById('broadcast-best-racer-car-name');
+            const petNameEl = document.getElementById('broadcast-best-racer-pet-name');
+            if (carNameEl) carNameEl.textContent = '---';
+            if (petNameEl) petNameEl.textContent = '---';
         }
 
         // 2. Update Top 2-6 Rankings List
