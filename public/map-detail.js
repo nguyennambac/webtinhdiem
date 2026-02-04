@@ -951,12 +951,16 @@ window.jumpToMap = async (index) => {
     const newUrl = `${window.location.pathname}?map=${index}`;
     window.history.pushState({ mapIndex: index }, '', newUrl);
 
-    // Fade Out Animation
-    const mainContent = document.getElementById('main-content');
-    mainContent.style.opacity = '0.5';
-    mainContent.style.transition = 'opacity 0.3s';
+    // Enhanced Transition using GSAP
+    const container = document.getElementById('broadcast-container');
 
-    await new Promise(resolve => setTimeout(resolve, 300));
+    // Phase 1: Fade out and slide down
+    await gsap.to(container, {
+        opacity: 0,
+        y: 20,
+        duration: 0.3,
+        ease: "power2.in"
+    });
 
     // Update Data
     currentMapData = raceState.maps[currentMapIndex];
@@ -969,8 +973,14 @@ window.jumpToMap = async (index) => {
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // Fade In
-    mainContent.style.opacity = '1';
+    // Phase 2: Reset position and fade in / slide up
+    gsap.set(container, { y: -20 }); // Start from slightly above
+    await gsap.to(container, {
+        opacity: 1,
+        y: 0,
+        duration: 0.5,
+        ease: "back.out(1.7)"
+    });
 };
 
 // Navigate relative (legacy wrapper)
