@@ -4375,12 +4375,15 @@ const disableEditFunctions = () => {
         '#logout-btn',
         '#notification-bell',
         '.notification-item button',
+        '#sidebar-toggle',
+        '#sidebar-toggle-in',
         '.lg\\:hidden',
         '[onclick*="openUserProfileModal"]',
         '[onclick*="openRecordHolderModal"]',
         '[onclick*="userProfileManager"]',
         '#export-excel-btn',
-        '#mark-all-read'
+        '#mark-all-read',
+        '#delete-all-notifications'
     ].join(',');
 
     const allButtons = document.querySelectorAll(`button:not(${allowedButtonSelectors})`);
@@ -4970,6 +4973,13 @@ const initNotificationSystem = () => {
         });
     }
 
+    // Đánh dấu tất cả thông báo đã đọc
+    if (markAllReadButton) {
+        markAllReadButton.addEventListener('click', () => {
+            markAllNotificationsAsRead();
+        });
+    }
+
     // Lấy thông báo từ Firestore
     setupNotificationListener();
 };
@@ -5063,6 +5073,11 @@ const updateNotificationUI = () => {
     const notificationCount = document.getElementById('notification-count');
     const notificationBell = document.getElementById('notification-bell');
 
+    if (!notificationList) return;
+
+    // Đếm số thông báo chưa đọc trước khi cập nhật các thành phần UI khác
+    unreadCount = notifications.filter(n => !n.read).length;
+
     if (notificationBell) {
         if (unreadCount > 0) {
             notificationBell.classList.add('has-unread');
@@ -5074,26 +5089,27 @@ const updateNotificationUI = () => {
             } else {
                 notificationBell.classList.remove('important-alert');
             }
+
+            // Highlight icon chuông
+            const bellIcon = notificationBell.querySelector('i');
+            if (bellIcon) bellIcon.classList.add('text-yellow-400');
         } else {
             notificationBell.classList.remove('has-unread', 'important-alert');
+            const bellIcon = notificationBell.querySelector('i');
+            if (bellIcon) bellIcon.classList.remove('text-yellow-400');
         }
     }
 
-    if (!notificationList || !notificationCount) return;
-
-    // Đếm số thông báo chưa đọc
-    unreadCount = notifications.filter(n => !n.read).length;
-
-    // Cập nhật badge
-    if (unreadCount > 0) {
-        notificationCount.textContent = unreadCount > 9 ? '9+' : unreadCount;
-        notificationCount.classList.remove('hidden');
-        notificationCount.classList.add('notification-badge-pulse');
-        notificationBell.querySelector('i').classList.add('text-yellow-400');
-    } else {
-        notificationCount.classList.add('hidden');
-        notificationCount.classList.remove('notification-badge-pulse');
-        notificationBell.querySelector('i').classList.remove('text-yellow-400');
+    // Cập nhật badge số lượng nếu tồn tại
+    if (notificationCount) {
+        if (unreadCount > 0) {
+            notificationCount.textContent = unreadCount > 9 ? '9+' : unreadCount;
+            notificationCount.classList.remove('hidden');
+            notificationCount.classList.add('notification-badge-pulse');
+        } else {
+            notificationCount.classList.add('hidden');
+            notificationCount.classList.remove('notification-badge-pulse');
+        }
     }
 
     // Hiển thị danh sách thông báo
@@ -5888,40 +5904,45 @@ const updateNotificationBadge = () => {
     const notificationCount = document.getElementById('notification-count');
     const notificationBell = document.getElementById('notification-bell');
 
-    if (!notificationCount || !notificationBell) {
-        console.warn("⚠️ Không tìm thấy notification badge elements");
+    if (!notificationCount && !notificationBell) {
         return;
     }
 
     // Tính số thông báo chưa đọc
-    const unreadCount = notifications.filter(n => !n.read).length;
+    const unreadCountForBadge = notifications.filter(n => !n.read).length;
 
-    console.log(`🔄 Cập nhật badge: ${unreadCount} thông báo chưa đọc`);
+    console.log(`🔄 Cập nhật badge: ${unreadCountForBadge} thông báo chưa đọc`);
 
     // CHỈ HIỂN THỊ BADGE CHO ADMIN
-    if (isAdminUser && unreadCount > 0) {
-        notificationCount.textContent = unreadCount > 9 ? '9+' : unreadCount;
-        notificationCount.classList.remove('hidden');
-        notificationBell.classList.add('has-unread');
+    if (typeof isAdminUser !== 'undefined' && isAdminUser && unreadCountForBadge > 0) {
+        if (notificationCount) {
+            notificationCount.textContent = unreadCountForBadge > 9 ? '9+' : unreadCountForBadge;
+            notificationCount.classList.remove('hidden');
+        }
+        if (notificationBell) {
+            notificationBell.classList.add('has-unread');
 
-        // Kiểm tra có thông báo quan trọng không
-        const hasImportantUnread = notifications.some(n => !n.read && n.important);
-        if (hasImportantUnread) {
-            notificationBell.classList.add('important-alert');
-        } else {
-            notificationBell.classList.remove('important-alert');
+            // Kiểm tra có thông báo quan trọng không
+            const hasImportantUnread = notifications.some(n => !n.read && n.important);
+            if (hasImportantUnread) {
+                notificationBell.classList.add('important-alert');
+            } else {
+                notificationBell.classList.remove('important-alert');
+            }
         }
     } else {
         // NGƯỜI XEM: không hiển thị badge số lượng
-        notificationCount.classList.add('hidden');
-        notificationBell.classList.remove('has-unread', 'important-alert');
+        if (notificationCount) notificationCount.classList.add('hidden');
+        if (notificationBell) {
+            notificationBell.classList.remove('has-unread', 'important-alert');
 
-        // Nhưng vẫn có thể thấy chuông có thông báo mới (không đếm số)
-        const hasUnread = notifications.some(n => !n.read);
-        if (hasUnread) {
-            notificationBell.classList.add('has-unread');
-        } else {
-            notificationBell.classList.remove('has-unread');
+            // Nhưng vẫn có thể thấy chuông có thông báo mới (không đếm số)
+            const hasUnread = notifications.some(n => !n.read);
+            if (hasUnread) {
+                notificationBell.classList.add('has-unread');
+            } else {
+                notificationBell.classList.remove('has-unread');
+            }
         }
     }
 };

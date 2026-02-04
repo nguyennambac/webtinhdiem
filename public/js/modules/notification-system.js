@@ -54,7 +54,11 @@ class NotificationSystem {
         const header = document.querySelector('header') || document.querySelector('nav');
         if (!header) return;
 
-        const bellContainer = document.getElementById('notification-bell') || document.createElement('div');
+        const existingBell = document.getElementById('notification-bell');
+        // Nếu đã có bell icon trong HTML thì không tạo mới/ghi đè để tránh mất các element con (như notification-count)
+        if (existingBell && existingBell.children.length > 0) return;
+
+        const bellContainer = existingBell || document.createElement('div');
         bellContainer.id = 'notification-bell';
         bellContainer.innerHTML = `
             <div style="position: relative; display: inline-block; cursor: pointer;">
