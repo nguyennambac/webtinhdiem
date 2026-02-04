@@ -20,9 +20,14 @@ const auth = getAuth(app);
 
 // Global variables
 let ALL_MAPS = [];
+let ALL_USERS = [];
+let ALL_CARS = [];
+let ALL_PETS = [];
+let ALL_RECORDS = [];
 let currentMapData = null;
 let currentMapIndex = 0;
 let raceState = null;
+let GLOBAL_CACHE_LOADED = false;
 
 // Utility Functions
 const timeToSeconds = (timeString) => {
@@ -128,48 +133,26 @@ const setupRealtimeListener = () => {
     try {
         const raceDocRef = doc(db, "raceState", "current");
 
-        // Set up real-time listener
         onSnapshot(raceDocRef, async (docSnapshot) => {
             if (docSnapshot.exists()) {
-                console.log("Real-time update received!");
+                console.log("⚡ Real-time update received!");
 
                 const oldMapCount = raceState ? raceState.maps.length : 0;
-
-                // Update race state
                 raceState = docSnapshot.data();
-
                 const newMapCount = raceState.maps.length;
 
-                // Kiểm tra nếu có map mới được thêm vào
+                // Khi có update, cũng nên làm mới cache records vì có thể vừa submit xong
+                await refreshGlobalCache(['records']);
+
                 if (newMapCount > oldMapCount) {
-                    console.log(`New map detected! Old count: ${oldMapCount}, New count: ${newMapCount}`);
-                    // Tự động chuyển đến map mới nhất
                     await autoNavigateToLatestMap();
                 } else {
-                    // Cập nhật map hiện tại nếu không có map mới
                     if (currentMapIndex >= 0 && currentMapIndex < raceState.maps.length) {
                         currentMapData = raceState.maps[currentMapIndex];
-
-                        // Find map info from ALL_MAPS
                         const mapInfo = ALL_MAPS.find(m => m.name === currentMapData.name);
 
-                        // Render map details with smooth transition
-                        const mainContent = document.getElementById('main-content');
-                        mainContent.style.opacity = '0.7';
-                        mainContent.style.transition = 'opacity 0.3s';
-
-                        // Render updated data
-                        await renderMapDetails(currentMapData, mapInfo, raceState, currentMapIndex);
-                        renderDetailedScoreboard();
-                        updateNavigationButtons(currentMapIndex, raceState.maps.length);
-
-                        // Fade back in
-                        setTimeout(() => {
-                            mainContent.style.opacity = '1';
-                        }, 100);
-
-                        // Show notification
-                        showUpdateNotification();
+                        // Render updated data - don't await everything to keep UI responsive
+                        renderMapDetails(currentMapData, mapInfo, raceState, currentMapIndex);
                     }
                 }
             }
@@ -182,118 +165,33 @@ const setupRealtimeListener = () => {
     }
 };
 
-// Auto navigate to latest map
-const autoNavigateToLatestMap = async () => {
+// 🖼️ Preload images for nearby maps
+const preloadAdjacentMapImages = () => {
     if (!raceState || !raceState.maps) return;
 
-    const totalMaps = raceState.maps.length;
-    const latestMapIndex = totalMaps - 1;
-
-    // Nếu có map mới hơn map hiện tại
-    if (latestMapIndex > currentMapIndex) {
-        console.log(`Auto navigating to latest map: ${latestMapIndex}`);
-
-        // Cập nhật currentMapIndex
-        currentMapIndex = latestMapIndex;
-
-        // Cập nhật URL
-        const newUrl = `${window.location.pathname}?map=${currentMapIndex}`;
-        window.history.pushState({ mapIndex: currentMapIndex }, '', newUrl);
-
-        // Lấy dữ liệu map mới
-        currentMapData = raceState.maps[currentMapIndex];
-        const mapInfo = ALL_MAPS.find(m => m.name === currentMapData.name);
-
-        // Thêm hiệu ứng fade out
-        const mainContent = document.getElementById('main-content');
-        mainContent.style.opacity = '0.5';
-        mainContent.style.transition = 'opacity 0.3s';
-
-        // Đợi animation
-        await new Promise(resolve => setTimeout(resolve, 300));
-
-        // Render lại nội dung
-        await renderMapDetails(currentMapData, mapInfo, raceState, currentMapIndex);
-        renderDetailedScoreboard();
-        updateNavigationButtons(currentMapIndex, raceState.maps.length);
-
-        // Scroll lên đầu trang
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-
-        // Fade in
-        mainContent.style.opacity = '1';
-
-        // Hiển thị thông báo
-        showUpdateNotification('Đã chuyển đến map mới nhất!');
-    }
+    const indicesToPreload = [currentMapIndex - 1, currentMapIndex + 1];
+    indicesToPreload.forEach(idx => {
+        if (idx >= 0 && idx < raceState.maps.length) {
+            const mapName = raceState.maps[idx].name;
+            const mapInfo = ALL_MAPS.find(m => m.name === mapName);
+            if (mapInfo && mapInfo.imageUrl) {
+                const img = new Image();
+                img.src = mapInfo.imageUrl;
+            }
+        }
+    });
 };
 
-// Render Top Records for Broadcast Center
 const renderTop5RecordsBroadcast = async (mapName) => {
-    console.log("🎬 Start renderTop5RecordsBroadcast for:", mapName);
+    if (!mapName) return;
     try {
-        if (!mapName) {
-            console.warn("⚠️ mapName is missing!");
-            return;
-        }
+        // Get from CACHE and sort in memory
+        const records = ALL_RECORDS
+            .filter(r => (r.mapName || "").trim().toLowerCase() === mapName.trim().toLowerCase())
+            .sort((a, b) => (a.timeInSeconds || Infinity) - (b.timeInSeconds || Infinity))
+            .slice(0, 6);
 
-        const recordsRef = collection(db, "raceRecords");
-        const q = query(
-            recordsRef,
-            where("mapName", "==", mapName.trim()),
-            orderBy("timeInSeconds", "asc"),
-            limit(6) // Tăng lên 6 record
-        );
-
-        console.log("🔍 Executing Firestore Query...");
-        const querySnapshot = await getDocs(q);
-        const records = [];
-        querySnapshot.forEach((doc) => {
-            records.push(doc.data());
-        });
-        console.log(`✅ Loaded ${records.length} records.`);
-
-        // Helper: Fetch all once & Find normalized
-        const findImageFromCollection = async (collectionName, itemName) => {
-            if (!itemName) return null;
-            try {
-                // Fetch all docs (nên cache nếu có thể, nhưng ở đây làm đơn giản trước)
-                const snap = await getDocs(collection(db, collectionName));
-                const target = itemName.trim().toLowerCase();
-
-                console.group(`🔍 Finding "${itemName}" in ${collectionName}`);
-                console.log(`Target (normalized): "${target}"`);
-
-                const foundDoc = snap.docs.find(doc => {
-                    const data = doc.data();
-                    const currentName = data.name ? data.name.trim().toLowerCase() : "";
-
-                    // Log partial matches or all names to debugging if needed
-                    // console.log(`Checking against: "${currentName}"`); 
-
-                    return currentName === target;
-                });
-
-                if (foundDoc) {
-                    const imageUrl = foundDoc.data().imageUrl;
-                    console.log(`✅ MATCH FOUND! Image URL:`, imageUrl);
-                    console.groupEnd();
-                    return imageUrl;
-                }
-
-                // If not found, log all available names to help user debug
-                console.warn(`❌ No match found. Available names in ${collectionName}:`);
-                const allNames = snap.docs.map(d => d.data().name);
-                console.log(allNames);
-                console.groupEnd();
-
-                return null;
-            } catch (e) {
-                console.error(`Error finding image for ${itemName}:`, e);
-                console.groupEnd();
-                return null;
-            }
-        };
+        // Use global findImg
 
         // 1. Update Best Racer (Global Record Holder)
         const best = records[0];
@@ -302,41 +200,21 @@ const renderTop5RecordsBroadcast = async (mapName) => {
         const bestCarIcon = document.getElementById('broadcast-best-racer-car');
         const bestPetIcon = document.getElementById('broadcast-best-racer-pet');
 
-        if (!bestNameEl || !bestRecordEl) {
-            console.error("❌ Critical Elements missing in DOM!");
-            return;
-        }
+        if (!bestNameEl || !bestRecordEl) return;
 
         if (best) {
-            // Fix field names: database uses 'car' and 'pet', not 'carName', 'petName'
             const carName = best.car || best.carName;
             const petName = best.pet || best.petName;
 
-            console.log(`🥇 Best Racer: ${best.racerName} | Car: ${carName} | Pet: ${petName}`);
             bestNameEl.textContent = best.racerName;
             bestRecordEl.textContent = best.timeString;
 
-            // Tìm ảnh xe/pet
-            try {
-                // Sử dụng hàm tìm kiếm mềm dẻo hơn
-                let carUrl = await findImageFromCollection("gameCars", carName);
-                let petUrl = await findImageFromCollection("gamePets", petName);
+            let carUrl = findImg("gameCars", carName);
+            let petUrl = findImg("gamePets", petName);
 
-                if (bestCarIcon) {
-                    bestCarIcon.innerHTML = carUrl
-                        ? `<img src="${carUrl}" class="h-10 object-contain w-full">`
-                        : `<div class="text-xs text-slate-500">${carName || 'N/A'}</div>`;
-                }
-                if (bestPetIcon) {
-                    bestPetIcon.innerHTML = petUrl
-                        ? `<img src="${petUrl}" class="h-10 object-contain w-full">`
-                        : `<div class="text-xs text-slate-500">${petName || 'N/A'}</div>`;
-                }
-            } catch (imgError) {
-                console.warn("⚠️ Error fetching equipment images:", imgError);
-            }
+            if (bestCarIcon) bestCarIcon.innerHTML = carUrl ? `<img src="${carUrl}" class="h-10 object-contain w-full">` : `<div class="text-xs text-slate-500">${carName || 'N/A'}</div>`;
+            if (bestPetIcon) bestPetIcon.innerHTML = petUrl ? `<img src="${petUrl}" class="h-10 object-contain w-full">` : `<div class="text-xs text-slate-500">${petName || 'N/A'}</div>`;
         } else {
-            console.log("⚪ No records found.");
             bestNameEl.textContent = "CHƯA CÓ KỶ LỤC";
             bestRecordEl.textContent = "--:--.--";
             if (bestCarIcon) bestCarIcon.innerHTML = '<i class="fas fa-car text-slate-300"></i>';
@@ -348,202 +226,13 @@ const renderTop5RecordsBroadcast = async (mapName) => {
             const record = records[i - 1];
             const nameEl = document.getElementById(`rank-${i}-name`);
             const timeEl = document.getElementById(`rank-${i}-time`);
-
-            // Nếu không có ID cho rank-5 thì bỏ qua (hoặc thêm vào HTML sau)
             if (nameEl) {
                 nameEl.textContent = record ? record.racerName : "Chưa có";
                 if (timeEl) timeEl.textContent = record ? record.timeString : "--'--'--";
             }
         }
-
     } catch (error) {
         console.error("❌ Lỗi khi render Top Records:", error);
-    }
-};
-
-// Render Top 4 Records
-const renderTop5Records = async (mapName) => {
-    const recordsList = document.getElementById('top-records-list');
-
-    if (!recordsList) return;
-
-    try {
-        // Lấy tất cả records của map này từ Firestore
-        const recordsSnapshot = await getDocs(collection(db, "raceRecords"));
-
-        // Lấy danh sách xe và pet từ database
-        const carsSnapshot = await getDocs(collection(db, "gameCars"));
-        const petsSnapshot = await getDocs(collection(db, "gamePets"));
-
-        // Tạo map để tìm kiếm nhanh
-        const carMap = new Map();
-        const petMap = new Map();
-
-        carsSnapshot.docs.forEach(doc => {
-            const data = doc.data();
-            carMap.set(data.name, data.imageUrl);
-        });
-
-        petsSnapshot.docs.forEach(doc => {
-            const data = doc.data();
-            petMap.set(data.name, data.imageUrl);
-        });
-
-        // Filter records cho map hiện tại
-        const mapRecords = [];
-        recordsSnapshot.docs.forEach(doc => {
-            const data = doc.data();
-            if (data.mapName === mapName) {
-                // Tìm imageUrl từ tên xe và pet
-                const carName = data.car || "N/A";
-                const petName = data.pet || "N/A";
-
-                mapRecords.push({
-                    id: doc.id,
-                    racerName: data.racerName || "Unknown",
-                    timeInSeconds: data.timeInSeconds || 0,
-                    timeString: data.timeString || "--'--'--",
-                    car: carName,
-                    pet: petName,
-                    carImageUrl: carMap.get(carName) || null,
-                    petImageUrl: petMap.get(petName) || null,
-                    timestamp: data.timestamp || ""
-                });
-            }
-        });
-
-        // Nếu không có records
-        if (mapRecords.length === 0) {
-            recordsList.innerHTML = `
-                <div class="text-center text-slate-500 py-4">
-                    <i class="fas fa-trophy text-3xl mb-2 opacity-30"></i>
-                    <p>Chưa có record nào cho map này</p>
-                </div>
-            `;
-            return;
-        }
-
-        // Sort theo thời gian tăng dần (nhanh nhất lên đầu)
-        mapRecords.sort((a, b) => a.timeInSeconds - b.timeInSeconds);
-
-        // Lấy top 4
-        const top4 = mapRecords.slice(0, 4);
-
-        // Render
-        recordsList.innerHTML = '';
-
-        top4.forEach((record, index) => {
-            const rank = index + 1;
-            let rankClass = '';
-            let badgeClass = 'default';
-            let rankIcon = rank;
-
-            if (rank === 1) {
-                rankClass = 'rank-1';
-                badgeClass = 'gold';
-                rankIcon = '🥇';
-            } else if (rank === 2) {
-                rankClass = 'rank-2';
-                badgeClass = 'silver';
-                rankIcon = '🥈';
-            } else if (rank === 3) {
-                rankClass = 'rank-3';
-                badgeClass = 'bronze';
-                rankIcon = '🥉';
-            }
-
-            const recordItem = document.createElement('div');
-            recordItem.className = `record-item ${rankClass}`;
-
-            recordItem.innerHTML = `
-                <div class="record-rank-badge ${badgeClass}">
-                    ${rank <= 3 ? rankIcon : rank}
-                </div>
-                
-                <div class="flex items-start justify-between pr-10">
-                    <div class="flex-1">
-                        <!-- Racer Name -->
-                        <div class="flex items-center gap-2 mb-1">
-                            <i class="fas fa-user text-cyan-400 text-xs"></i>
-                            <span class="font-semibold text-white text-sm">${record.racerName}</span>
-                            ${rank === 1 ? '<i class="fas fa-crown text-yellow-400 text-xs ml-1"></i>' : ''}
-                        </div>
-                        
-                        <!-- Time -->
-                        <div class="text-2xl font-bold ${rank === 1 ? 'text-yellow-400' : rank === 2 ? 'text-slate-300' : rank === 3 ? 'text-orange-400' : 'text-cyan-400'} mb-2">
-                            ${record.timeString}
-                        </div>
-                        
-                        <!-- Equipment -->
-                        <div style="display: flex; flex-direction: row; gap: 10px; align-items: center; margin-top: 8px;">
-                           <div class="equipment-tag" style="min-width: 100px;">
-    ${record.carImageUrl ?
-                    `<img src="${record.carImageUrl}" alt="${record.car}" class="w-25 h-25 object-contain" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'inline-block\';">
-                                     <i class="fas fa-car text-cyan-400" style="display:none;"></i>`
-                    :
-                    `<i class="fas fa-car text-cyan-400"></i>`
-                }
-                            </div>
-                            <div class="equipment-tag" style="min-width: 100px;">
-    ${record.petImageUrl ?
-                    `<img src="${record.petImageUrl}" alt="${record.pet}" class="w-25 h-25 object-contain" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'inline-block\';">
-                                     <i class="fas fa-paw text-purple-400" style="display:none;"></i>`
-                    :
-                    `<i class="fas fa-paw text-purple-400"></i>`
-                }
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            recordsList.appendChild(recordItem);
-        });
-
-    } catch (error) {
-        console.error("Lỗi khi tải top records:", error);
-        recordsList.innerHTML = `
-            <div class="text-center text-red-400 py-4">
-                <i class="fas fa-exclamation-triangle mr-2"></i>
-                Không thể tải records
-            </div>
-        `;
-    }
-};
-
-// Get Top 3 most popular car and pet
-const getTop3PopularEquipment = async (mapName) => {
-    try {
-        const recordsSnapshot = await getDocs(collection(db, "raceRecords"));
-
-        // Count cars and pets for this map
-        const carCount = {};
-        const petCount = {};
-
-        recordsSnapshot.docs.forEach(doc => {
-            const data = doc.data();
-            if (data.mapName === mapName) {
-                // Fix: database uses 'car' and 'pet'
-                const carName = data.car || data.carName;
-                const petName = data.pet || data.petName;
-
-                if (carName && carName !== "N/A") carCount[carName] = (carCount[carName] || 0) + 1;
-                if (petName && petName !== "N/A") petCount[petName] = (petCount[petName] || 0) + 1;
-            }
-        });
-
-        // Sort and get Top 3
-        const sortedCars = Object.keys(carCount).sort((a, b) => carCount[b] - carCount[a]).slice(0, 3);
-        const sortedPets = Object.keys(petCount).sort((a, b) => petCount[b] - petCount[a]).slice(0, 3);
-
-        return {
-            cars: sortedCars.map(name => ({ name, count: carCount[name] })),
-            pets: sortedPets.map(name => ({ name, count: petCount[name] }))
-        };
-
-    } catch (error) {
-        console.error("Lỗi khi lấy equipment phổ biến:", error);
-        return { cars: [], pets: [] };
     }
 };
 
@@ -554,148 +243,137 @@ const renderPopularStats = async (mapName) => {
 
     if (!carsListEl || !petsListEl) return;
 
-    // Reset loading state
-    const loadingHtml = '<div class="w-full text-center"><i class="fas fa-spinner fa-spin text-slate-500"></i></div>';
-    carsListEl.innerHTML = loadingHtml;
-    petsListEl.innerHTML = loadingHtml;
+    const data = getTop3PopularEquipment(mapName);
 
-    const data = await getTop3PopularEquipment(mapName);
+    // Render Compact Cars
+    carsListEl.innerHTML = data.cars.length > 0 ? '' : '<span class="text-sm text-slate-500 italic">Chưa có</span>';
+    data.cars.forEach((item, i) => {
+        const imgUrl = findImg("gameCars", item.name);
+        let badgeClass = i === 0 ? 'bg-yellow-500' : i === 1 ? 'bg-gray-400' : 'bg-orange-600';
+        carsListEl.innerHTML += `
+            <div class="relative group" title="${item.name} (${item.count} lượt)">
+                 <div class="w-20 h-14 flex items-center justify-center">
+                    ${imgUrl ? `<img src="${imgUrl}" class="h-full object-contain hover:scale-110 transition-transform drop-shadow-md">` : '<i class="fas fa-car text-slate-600"></i>'}
+                 </div>
+                 <div class="absolute -top-1 -left-1 w-3 h-3 ${badgeClass} text-[8px] font-bold flex items-center justify-center rounded-full text-white shadow-sm">${i + 1}</div>
+            </div>`;
+    });
 
-    // Reuse helper to find image (need to ensure scope access or re-declare)
-    const findImg = async (coll, name) => {
-        try {
-            const snap = await getDocs(collection(db, coll));
-            const target = name.trim().toLowerCase();
-            const found = snap.docs.find(d => (d.data().name || "").trim().toLowerCase() === target);
-            return found ? found.data().imageUrl : null;
-        } catch (e) { return null; }
-    };
-
-    // Render Compact Cars (Images Only)
-    if (data.cars.length > 0) {
-        carsListEl.innerHTML = '';
-        for (let i = 0; i < data.cars.length; i++) {
-            const item = data.cars[i];
-            const imgUrl = await findImg("gameCars", item.name);
-
-            // Badge cho rank
-            let badgeClass = 'bg-slate-700';
-            if (i === 0) badgeClass = 'bg-yellow-500';
-            else if (i === 1) badgeClass = 'bg-gray-400';
-            else if (i === 2) badgeClass = 'bg-orange-600';
-
-            carsListEl.innerHTML += `
-                <div class="relative group" title="${item.name} (${item.count} lượt)">
-                     <div class="w-20 h-14 flex items-center justify-center">
-                        ${imgUrl
-                    ? `<img src="${imgUrl}" class="h-full object-contain hover:scale-110 transition-transform drop-shadow-md">`
-                    : '<i class="fas fa-car text-slate-600"></i>'}
-                     </div>
-                     <div class="absolute -top-1 -left-1 w-3 h-3 ${badgeClass} text-[8px] font-bold flex items-center justify-center rounded-full text-white shadow-sm">
-                        ${i + 1}
-                     </div>
-                </div>
-            `;
-        }
-    } else {
-        carsListEl.innerHTML = '<span class="text-sm text-slate-500 italic">Chưa có</span>';
-    }
-
-    // Render Compact Pets (Images Only)
-    if (data.pets.length > 0) {
-        petsListEl.innerHTML = '';
-        for (let i = 0; i < data.pets.length; i++) {
-            const item = data.pets[i];
-            const imgUrl = await findImg("gamePets", item.name);
-
-            // Badge cho rank
-            let badgeClass = 'bg-slate-700';
-            if (i === 0) badgeClass = 'bg-yellow-500';
-            else if (i === 1) badgeClass = 'bg-gray-400';
-            else if (i === 2) badgeClass = 'bg-orange-600';
-
-            petsListEl.innerHTML += `
-                <div class="relative group" title="${item.name} (${item.count} lượt)">
-                     <div class="w-20 h-14 flex items-center justify-center">
-                        ${imgUrl
-                    ? `<img src="${imgUrl}" class="h-full object-contain hover:scale-110 transition-transform drop-shadow-md">`
-                    : '<i class="fas fa-paw text-slate-600"></i>'}
-                     </div>
-                     <div class="absolute -top-1 -left-1 w-3 h-3 ${badgeClass} text-[8px] font-bold flex items-center justify-center rounded-full text-white shadow-sm">
-                        ${i + 1}
-                     </div>
-                </div>
-            `;
-        }
-    } else {
-        petsListEl.innerHTML = '<span class="text-sm text-slate-500 italic">Chưa có</span>';
-    }
-};
-
-// Get personal record for a racer on a specific map
-const getPersonalRecord = async (racerName, mapName) => {
-    try {
-        const recordsSnapshot = await getDocs(collection(db, "raceRecords"));
-
-        let bestRecord = null;
-        let bestTime = Infinity;
-
-        recordsSnapshot.docs.forEach(doc => {
-            const data = doc.data();
-            if (data.racerName === racerName && data.mapName === mapName) {
-                const timeInSeconds = data.timeInSeconds || 0;
-                if (timeInSeconds > 0 && timeInSeconds < bestTime) {
-                    bestTime = timeInSeconds;
-                    bestRecord = {
-                        timeString: data.timeString || "--'--'--",
-                        timeInSeconds: timeInSeconds,
-                        car: data.car || "N/A",
-                        pet: data.pet || "N/A"
-                    };
-                }
-            }
-        });
-
-        return bestRecord;
-    } catch (error) {
-        console.error(`Lỗi khi lấy kỷ lục cho ${racerName}:`, error);
-        return null;
-    }
-};
-
-// Calculate map selection percentage
-const calculateMapSelectionRate = async (mapName) => {
-    try {
-        const recordsSnapshot = await getDocs(collection(db, "raceRecords"));
-
-        let totalRecords = 0;
-        let mapRecordsCount = 0;
-
-        recordsSnapshot.docs.forEach(doc => {
-            const data = doc.data();
-            totalRecords++;
-
-            if (data.mapName === mapName) {
-                mapRecordsCount++;
-            }
-        });
-
-        if (totalRecords === 0) {
-            return 0;
-        }
-
-        const percentage = ((mapRecordsCount / totalRecords) * 100).toFixed(1);
-        return percentage;
-
-    } catch (error) {
-        console.error("Lỗi khi tính tỉ lệ chọn map:", error);
-        return 0;
-    }
+    // Render Compact Pets
+    petsListEl.innerHTML = data.pets.length > 0 ? '' : '<span class="text-sm text-slate-500 italic">Chưa có</span>';
+    data.pets.forEach((item, i) => {
+        const imgUrl = findImg("gamePets", item.name);
+        let badgeClass = i === 0 ? 'bg-yellow-500' : (i === 1 ? 'bg-gray-400' : 'bg-orange-600');
+        petsListEl.innerHTML += `
+            <div class="relative group" title="${item.name} (${item.count} lượt)">
+                 <div class="w-20 h-14 flex items-center justify-center">
+                    ${imgUrl ? `<img src="${imgUrl}" class="h-full object-contain hover:scale-110 transition-transform drop-shadow-md">` : '<i class="fas fa-paw text-slate-600"></i>'}
+                 </div>
+                 <div class="absolute -top-1 -left-1 w-3 h-3 ${badgeClass} text-[8px] font-bold flex items-center justify-center rounded-full text-white shadow-sm">${i + 1}</div>
+            </div>`;
+    });
 };
 
 // Show update notification
 const showUpdateNotification = (message = 'Dữ liệu đã được cập nhật!') => {
-    return;
+    console.log("🔔 Notification:", message);
+};
+
+// HELPER: Fetch Car/Pet Images from cache
+const findImg = (collectionName, itemName) => {
+    if (!itemName) return null;
+    const target = itemName.trim().toLowerCase();
+    const collection = (collectionName === "gameCars" || collectionName === "cars") ? ALL_CARS : ALL_PETS;
+    const found = collection.find(item => (item.name || "").trim().toLowerCase() === target);
+    return found ? found.imageUrl : null;
+};
+
+// Get personal record for a racer on a specific map
+const getPersonalRecord = (racerName, mapName) => {
+    if (!racerName || !mapName) return null;
+    const targetMap = mapName.trim().toLowerCase();
+    const targetRacer = racerName.trim().toLowerCase();
+
+    const personalRecords = ALL_RECORDS.filter(r =>
+        (r.racerName || "").trim().toLowerCase() === targetRacer &&
+        (r.mapName || "").trim().toLowerCase() === targetMap
+    );
+
+    if (personalRecords.length === 0) return null;
+
+    const best = personalRecords.sort((a, b) => (a.timeInSeconds || Infinity) - (b.timeInSeconds || Infinity))[0];
+
+    return {
+        timeString: best.timeString || "--'--'--",
+        timeInSeconds: best.timeInSeconds,
+        car: best.car || "N/A",
+        pet: best.pet || "N/A"
+    };
+};
+
+// Get Top 3 most popular car and pet for a map
+const getTop3PopularEquipment = (mapName) => {
+    if (!mapName) return { cars: [], pets: [] };
+    const carCount = {};
+    const petCount = {};
+    const targetMap = mapName.trim().toLowerCase();
+
+    ALL_RECORDS.forEach(data => {
+        if ((data.mapName || "").trim().toLowerCase() === targetMap) {
+            const carName = data.car || data.carName;
+            const petName = data.pet || data.petName;
+
+            if (carName && carName !== "N/A") carCount[carName] = (carCount[carName] || 0) + 1;
+            if (petName && petName !== "N/A") petCount[petName] = (petCount[petName] || 0) + 1;
+        }
+    });
+
+    const sortedCars = Object.keys(carCount).sort((a, b) => carCount[b] - carCount[a]).slice(0, 3);
+    const sortedPets = Object.keys(petCount).sort((a, b) => petCount[b] - petCount[a]).slice(0, 3);
+
+    return {
+        cars: sortedCars.map(name => ({ name, count: carCount[name] })),
+        pets: sortedPets.map(name => ({ name, count: petCount[name] }))
+    };
+};
+
+// Calculate map selection percentage
+const calculateMapSelectionRate = (mapName) => {
+    if (!mapName || ALL_RECORDS.length === 0) return 0;
+    const target = mapName.trim().toLowerCase();
+    const mapRecordsCount = ALL_RECORDS.filter(r => (r.mapName || "").trim().toLowerCase() === target).length;
+    return Math.round((mapRecordsCount / ALL_RECORDS.length) * 100);
+};
+
+// Add 3D Tilt Effect to cards
+const addCardEffects = (card, type = 'normal') => {
+    card.addEventListener('mousemove', (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+
+        const rotateX = (y - centerY) / 10;
+        const rotateY = (centerX - x) / 10;
+
+        card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+    });
+
+    card.addEventListener('mouseleave', () => {
+        card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+    });
+};
+
+// Auto navigate to the latest map (called on real-time update)
+const autoNavigateToLatestMap = async () => {
+    if (raceState && raceState.maps.length > 0) {
+        const latestIndex = raceState.maps.length - 1;
+        if (latestIndex !== currentMapIndex) {
+            await window.jumpToMap(latestIndex);
+        }
+    }
 };
 
 // Get URL Parameters
@@ -704,32 +382,42 @@ const getUrlParameter = (name) => {
     return urlParams.get(name);
 };
 
-// Fetch game data from Firestore
+// 🚀 TURBO LOAD SYSTEM: Fetch all core data in parallel
+const refreshGlobalCache = async (types = ['maps', 'users', 'cars', 'pets', 'records']) => {
+    console.log("🔄 Refreshing Global Cache for:", types.join(', '));
+    const startTime = performance.now();
+
+    const tasks = [];
+
+    if (types.includes('maps')) tasks.push(getDocs(collection(db, "gameMaps")).then(snap => {
+        ALL_MAPS = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }));
+
+    if (types.includes('users')) tasks.push(getDocs(collection(db, "users")).then(snap => {
+        ALL_USERS = snap.docs.map(doc => doc.data());
+    }));
+
+    if (types.includes('cars')) tasks.push(getDocs(collection(db, "gameCars")).then(snap => {
+        ALL_CARS = snap.docs.map(doc => doc.data());
+    }));
+
+    if (types.includes('pets')) tasks.push(getDocs(collection(db, "gamePets")).then(snap => {
+        ALL_PETS = snap.docs.map(doc => doc.data());
+    }));
+
+    if (types.includes('records')) tasks.push(getDocs(collection(db, "raceRecords")).then(snap => {
+        ALL_RECORDS = snap.docs.map(doc => doc.data());
+    }));
+
+    await Promise.all(tasks);
+    GLOBAL_CACHE_LOADED = true;
+    console.log(`✅ Global Cache loaded in ${(performance.now() - startTime).toFixed(2)}ms`);
+};
+
+// Legacy shim for fetchGameDataFromFirestore
 const fetchGameDataFromFirestore = async () => {
-    try {
-        const mapsSnapshot = await getDocs(collection(db, "gameMaps"));
-        ALL_MAPS = [];
-
-        mapsSnapshot.docs.forEach(doc => {
-            const data = doc.data();
-            ALL_MAPS.push({
-                id: doc.id,
-                name: data.name || "",
-                description: data.description || "",
-                imageUrl: data.imageUrl || null,
-                difficulty: data.difficulty || "Medium",
-                recordTime: data.recordTime || "00'00'00",
-                recordRacer: data.recordRacer || "",
-                recordCar: data.recordCar || "",
-                recordPet: data.pet || ""
-            });
-        });
-
-        return ALL_MAPS;
-    } catch (error) {
-        console.error("Lỗi khi tải dữ liệu từ Firestore:", error);
-        return [];
-    }
+    if (!GLOBAL_CACHE_LOADED) await refreshGlobalCache(['maps']);
+    return ALL_MAPS;
 };
 
 // Load race state and map data
@@ -761,9 +449,6 @@ const loadMapData = async () => {
             // Render map details - NOW AWAIT
             await renderMapDetails(currentMapData, mapInfo, raceState, currentMapIndex);
 
-            // Render detailed scoreboard
-            renderDetailedScoreboard();
-
             // Update navigation buttons
             updateNavigationButtons(currentMapIndex, raceState.maps.length);
         } else {
@@ -774,112 +459,6 @@ const loadMapData = async () => {
         console.error("Lỗi khi tải dữ liệu map:", error);
         showError("Không thể tải thông tin map. Vui lòng thử lại sau.");
     }
-};
-
-// Render detailed scoreboard
-const renderDetailedScoreboard = () => {
-    const thead = document.getElementById('detailed-scoreboard-header');
-    const tbody = document.getElementById('detailed-scoreboard-body');
-    const table = thead.closest('table');
-
-    if (!raceState || raceState.maps.length === 0) {
-        thead.innerHTML = '';
-        tbody.innerHTML = `<tr><td colspan="100%" class="text-center py-8 text-slate-500">Chưa có bản đồ nào được thêm vào.</td></tr>`;
-        return;
-    }
-
-    const rankingData = calculateRanking();
-    const mapPointsMatrix = raceState.maps.map(map => calculateMapPoints(map.times, map.name));
-
-    // Tạo colgroup để áp dụng background cho cả cột
-    let colgroupHtml = '<colgroup>';
-    colgroupHtml += '<col style="width: 80px; min-width: 80px;">'; // Cột Hạng
-    colgroupHtml += '<col style="width: 180px; min-width: 180px;">'; // Cột Tay Đua
-
-    raceState.maps.forEach((map) => {
-        // Tìm thông tin map từ ALL_MAPS để lấy imageUrl
-        const mapInfo = ALL_MAPS.find(m => m.name === map.name);
-        const mapImageUrl = mapInfo?.imageUrl || '';
-
-        const backgroundStyle = mapImageUrl ?
-            `background-image: url('${mapImageUrl}'); background-size: cover; background-position: center; background-repeat: no-repeat;` :
-            '';
-
-        colgroupHtml += `<col class="map-column-bg" style="${backgroundStyle} width: 210px; min-width: 210px; max-width: 210px;">`;
-    });
-
-    colgroupHtml += '<col style="width: 150px; min-width: 150px;">'; // Cột Tổng Điểm
-    colgroupHtml += '</colgroup>';
-
-    // Xóa colgroup cũ nếu có
-    const oldColgroup = table.querySelector('colgroup');
-    if (oldColgroup) {
-        oldColgroup.remove();
-    }
-
-    // Thêm colgroup mới
-    table.insertAdjacentHTML('afterbegin', colgroupHtml);
-
-    // Tạo header
-    let headerRow1 = `<tr>
-        <th scope="col" class="px-6 py-4 text-center text-sm font-extrabold uppercase tracking-wider text-cyan-400" style="width: 80px;">Hạng</th> 
-        <th scope="col" class="px-6 py-4 text-center text-sm font-extrabold uppercase tracking-wider text-cyan-400" style="width: 180px;">Tay Đua</th>`;
-
-    raceState.maps.forEach((map, mapIndex) => {
-        const isBtcMap = mapIndex === 0 && map.name.trim() === raceState.firstMapBtc.trim();
-        const isKingMap = raceState.racers.some(r => r.kingMap.trim() === map.name.trim());
-        let mapTypeIcon = '';
-
-        if (isBtcMap) {
-            mapTypeIcon = '<i class="fas fa-flag text-red-400 ml-1"></i>';
-        } else if (isKingMap) {
-            mapTypeIcon = '<i class="fas fa-crown text-amber-400 ml-1"></i>';
-        }
-
-        // Tìm thông tin map từ ALL_MAPS để lấy imageUrl cho header
-        const mapInfo = ALL_MAPS.find(m => m.name === map.name);
-        const mapImageUrl = mapInfo?.imageUrl || '';
-
-        const backgroundStyle = mapImageUrl ?
-            `background-image: url('${mapImageUrl}');` :
-            '';
-
-        headerRow1 += `<th scope="col" class="map-column-header px-4 py-4 text-center text-xs font-extrabold text-cyan-400 uppercase tracking-wider" style="${backgroundStyle} width: 210px; min-width: 210px; max-width: 210px;">
-            <div class="map-column-header-content flex flex-col items-center justify-center">
-                <span class="text-white font-bold drop-shadow-lg text-base">Trận ${mapIndex + 1}</span>
-                <span class="text-slate-100 text-xs mt-2 flex items-center justify-center drop-shadow-md font-semibold">
-                    ${map.name.trim() || 'Chưa đặt tên'} ${mapTypeIcon}
-                </span>
-            </div>
-        </th>`;
-    });
-
-    headerRow1 += `<th scope="col" class="px-6 py-4 text-center text-base font-extrabold text-white bg-gradient-to-r from-red-700 to-red-800 uppercase tracking-wider" style="width: 150px;">Tổng Điểm</th></tr>`;
-    thead.innerHTML = headerRow1;
-
-    // Tạo body
-    tbody.innerHTML = '';
-    rankingData.forEach((racer, rankIndex) => {
-        const racerIndex = racer.originalIndex;
-        const racerName = racer.name;
-
-        let rowHtml = `<tr class="hover:bg-slate-700/50 transition-colors ${racer.rank <= 3 ? 'font-bold' : ''}">`;
-
-        rowHtml += `<td class="px-3 py-4 text-center text-lg font-extrabold text-white">${racer.rank}</td>`;
-        rowHtml += `<td class="px-3 py-3 text-left text-sm font-semibold text-white">${racerName}</td>`;
-
-        raceState.maps.forEach((map, mapIndex) => {
-            const pointValue = mapPointsMatrix[mapIndex][racerIndex];
-
-            rowHtml += `<td class="px-3 py-4 text-center">
-                <div class="map-score-cell">+${pointValue}</div>
-            </td>`;
-        });
-
-        rowHtml += `<td class="px-6 py-3 text-center text-lg font-extrabold bg-gradient-to-r from-red-800 to-red-900 text-white">${racer.totalScore}</td>`;
-        rowHtml += `</tr>`;
-        tbody.insertAdjacentHTML('beforeend', rowHtml);
-    });
 };
 
 // Render map details
@@ -912,9 +491,6 @@ const renderMapDetails = async (mapData, mapInfo, raceState, mapIndex) => {
 
     // Update navigation buttons
     updateNavigationButtons(mapIndex, raceState.maps.length);
-
-    // Render detailed scoreboard
-    renderDetailedScoreboard();
 
     // Render Popular Statistics
     await renderPopularStats(mapData.name);
@@ -987,36 +563,22 @@ const renderRacersBroadcast = async (mapData, raceState) => {
     const validTimes = timesInSeconds.filter(t => t !== null && t > 0);
     const bestTime = validTimes.length > 0 ? Math.min(...validTimes) : null;
 
-    // 1. Fetch data for all 4 racers
-    const racersData = await Promise.all(raceState.racers.slice(0, 4).map(async (racer, index) => {
-        let photoURL = null;
-        let carImageUrl = null;
-        let petImageUrl = null;
+    // 🚀 Optimize: Parallel processing for all racers using CACHE lookups
+    const racersData = raceState.racers.slice(0, 4).map((racer, index) => {
+        // Find avatar in cache
+        const targetName = (racer.name || "").trim().toLowerCase();
+        const userData = ALL_USERS.find(u => (u.nickname || "").trim().toLowerCase() === targetName);
+        const photoURL = userData ? (userData.photoBase64 || userData.photoURL) : null;
 
-        try {
-            const usersRef = collection(db, "users");
-            const querySnapshot = await getDocs(usersRef);
-            querySnapshot.forEach((doc) => {
-                const userData = doc.data();
-                if (userData.nickname === racer.name) {
-                    photoURL = userData.photoBase64 || userData.photoURL;
-                }
-            });
-        } catch (e) { console.log("Error loading avatar", e); }
+        // Fetch Car/Pet Images from cache
+        const carName = (mapData.cars[index] || "").trim().toLowerCase();
+        const petName = (mapData.pets[index] || "").trim().toLowerCase();
 
-        // Fetch Car/Pet Images
-        const carName = mapData.cars[index];
-        const petName = mapData.pets[index];
+        const carInfo = ALL_CARS.find(d => (d.name || "").trim().toLowerCase() === carName);
+        const petInfo = ALL_PETS.find(d => (d.name || "").trim().toLowerCase() === petName);
 
-        // Simulating image fetch context (logic already in your code, keeping it concise)
-        const carsSnapshot = await getDocs(collection(db, "gameCars"));
-        const petsSnapshot = await getDocs(collection(db, "gamePets"));
-
-        const carInfo = carsSnapshot.docs.find(d => d.data().name === carName)?.data();
-        const petInfo = petsSnapshot.docs.find(d => d.data().name === petName)?.data();
-
-        // Lấy kỷ lục cá nhân
-        const personalRecord = await getPersonalRecord(racer.name, mapData.name);
+        // Lấy kỷ lục cá nhân từ cache
+        const personalRecord = getPersonalRecord(racer.name, mapData.name);
 
         // Tính điểm (Bonus Points)
         let bonus = null;
@@ -1024,11 +586,9 @@ const renderRacersBroadcast = async (mapData, raceState) => {
 
         if (myTime && myTime > 0 && bestTime !== null) {
             if (myTime === bestTime) {
-                // Winner
                 const isKingMapOwner = racer.kingMap && racer.kingMap.trim() === mapData.name.trim();
                 bonus = isKingMapOwner ? 12 : 11;
             } else {
-                // Others
                 const diff = myTime - bestTime;
                 const baseScore = 10;
                 const penalty = Math.floor(diff);
@@ -1041,15 +601,15 @@ const renderRacersBroadcast = async (mapData, raceState) => {
             name: racer.name || `Player ${index + 1}`,
             time: mapData.times[index] || "0:00.00",
             timeInSeconds: timeToSeconds(mapData.times[index]),
-            car: carName || "None",
-            pet: petName || "None",
+            car: mapData.cars[index] || "None",
+            pet: mapData.pets[index] || "None",
             carImageUrl: carInfo?.imageUrl || null,
             petImageUrl: petInfo?.imageUrl || null,
             photoURL: photoURL,
             personalRecord: personalRecord ? personalRecord.timeString : "--'--'--",
             bonus: bonus
         };
-    }));
+    });
 
     // 2. Render Player Cards to Slots
     racersData.forEach(racer => {
@@ -1113,103 +673,50 @@ const renderRacersBroadcast = async (mapData, raceState) => {
 
 
 // Render 2x2 grid layout (before race finishes)
-const renderRacersGrid2x2 = async (racersData, mapData, container) => {
+const renderRacersGrid2x2 = (racersData, mapData, container) => {
     const gridContainer = document.createElement('div');
     gridContainer.className = 'racers-grid-2x2';
 
-    for (const racer of racersData) {
-        const isKingMapOwner = racer.kingMap.trim() === mapData.name.trim();
-
-        // Lấy kỷ lục cá nhân
-        const personalRecord = await getPersonalRecord(racer.name, mapData.name);
+    racersData.forEach(racer => {
+        const isKingMapOwner = racer.kingMap && racer.kingMap.trim() === mapData.name.trim();
+        const personalRecord = getPersonalRecord(racer.name, mapData.name);
 
         const racerCard = document.createElement('div');
         racerCard.className = 'racer-card-2x2';
-
         addCardEffects(racerCard);
 
         racerCard.innerHTML = `
             <div class="flex flex-col items-center">
-                <!-- Player Photo -->
                 <div class="racer-photo-2x2 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 rounded-xl flex items-center justify-center border-2 border-cyan-500/30 overflow-hidden">
-                    ${racer.photoURL ?
-                `<img src="${racer.photoURL}" alt="${racer.name}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                         <i class="fas fa-user text-5xl text-cyan-400" style="display:none;"></i>`
-                :
-                `<i class="fas fa-user text-5xl text-cyan-400"></i>`
-            }
+                    ${racer.photoURL ? `<img src="${racer.photoURL}" alt="${racer.name}" class="w-full h-full object-cover">` : `<i class="fas fa-user text-5xl text-cyan-400"></i>`}
                 </div>
-                
-                <!-- Player Info -->
                 <div class="text-center mt-4 w-full">
                     <div class="flex items-center justify-center gap-2 mb-2">
-                        <h4 class="text-xl font-bold text-white">
-                            ${racer.name}
-                        </h4>
-                        ${isKingMapOwner ? '<i class="fas fa-crown text-amber-400 text-sm" title="King Map Owner"></i>' : ''}
+                        <h4 class="text-xl font-bold text-white">${racer.name}</h4>
+                        ${isKingMapOwner ? '<i class="fas fa-crown text-amber-400 text-sm"></i>' : ''}
                     </div>
-                    
                     <div class="text-sm text-slate-400 mb-3">Player ${racer.index + 1}</div>
-                    
-                    <!-- Status -->
                     <div class="mb-4">
                         <span class="text-yellow-400 text-sm bg-yellow-500/20 px-4 py-2 rounded-full border border-yellow-500/30 inline-flex items-center gap-2">
-                            <i class="fas fa-hourglass-half"></i>
-                            Đang đua
+                            <i class="fas fa-hourglass-half"></i> Đang đua
                         </span>
                     </div>
-                    
-                    <!-- Personal Record -->
-                    ${personalRecord ? `
-                    <div class="mb-4 p-3 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-lg border border-green-500/30">
-                        <div class="text-xs text-green-400 mb-1 uppercase tracking-wide font-semibold">
-                            <i class="fas fa-trophy mr-1"></i>
-                            Kỷ lục cá nhân
+                    <div class="mb-4 p-3 ${personalRecord ? 'bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/30' : 'bg-slate-800/30 border-slate-700/30'} rounded-lg border">
+                        <div class="text-xs ${personalRecord ? 'text-green-400' : 'text-slate-500'} mb-1 uppercase tracking-wide font-semibold">
+                            <i class="fas fa-trophy mr-1"></i> Kỷ luật cá nhân
                         </div>
-                        <div class="text-2xl font-bold text-green-400 font-orbitron">
-                            ${personalRecord.timeString}
+                        <div class="${personalRecord ? 'text-2xl text-green-400' : 'text-lg text-slate-500'} font-bold font-orbitron">
+                            ${personalRecord ? personalRecord.timeString : 'Chưa có kỷ lục'}
                         </div>
                     </div>
-                    ` : `
-                    <div class="mb-4 p-3 bg-slate-800/30 rounded-lg border border-slate-700/30">
-                        <div class="text-xs text-slate-500 mb-1 uppercase tracking-wide">
-                            <i class="fas fa-trophy mr-1"></i>
-                            Kỷ lục cá nhân
-                        </div>
-                        <div class="text-lg text-slate-500">
-                            Chưa có kỷ lục
-                        </div>
-                    </div>
-                    `}
-                    
-                    <!-- Equipment Info -->
-                    <div class="space-y-2">
-                        <div class="flex items-center justify-center gap-3">
-                            <div class="equipment-image-large car-image">
-                                ${racer.carImageUrl ?
-                `<img src="${racer.carImageUrl}" alt="${racer.car}" class="w-full h-full object-contain p-1" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                <i class="fas fa-car text-cyan-400 text-xs" style="display:none;"></i>`
-                :
-                `<i class="fas fa-car text-cyan-400 text-xs"></i>`
-            }
-                            </div>
-                            <div class="equipment-image-large pet-image">
-                                ${racer.petImageUrl ?
-                `<img src="${racer.petImageUrl}" alt="${racer.pet}" class="w-full h-full object-contain p-1" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                <i class="fas fa-paw text-purple-400 text-xs" style="display:none;"></i>`
-                :
-                `<i class="fas fa-paw text-purple-400 text-xs"></i>`
-            }
-                            </div>
-                        </div>
+                    <div class="flex items-center justify-center gap-3">
+                        <div class="equipment-image-large flex items-center justify-center">${racer.carImageUrl ? `<img src="${racer.carImageUrl}" class="w-full h-full object-contain">` : `<i class="fas fa-car text-cyan-400 text-xs"></i>`}</div>
+                        <div class="equipment-image-large flex items-center justify-center">${racer.petImageUrl ? `<img src="${racer.petImageUrl}" class="w-full h-full object-contain">` : `<i class="fas fa-paw text-purple-400 text-xs"></i>`}</div>
                     </div>
                 </div>
-            </div>
-        `;
-
+            </div>`;
         gridContainer.appendChild(racerCard);
-    }
-
+    });
     container.appendChild(gridContainer);
 };
 
@@ -1446,7 +953,6 @@ window.jumpToMap = async (index) => {
 
     // Render Content
     await renderMapDetails(currentMapData, mapInfo, raceState, currentMapIndex);
-    renderDetailedScoreboard();
     updateNavigationButtons(currentMapIndex, raceState.maps.length);
 
     // Scroll to top
@@ -1630,12 +1136,15 @@ const init = async () => {
         // Check authentication
         // onAuthStateChanged(auth, async (user) => {
         //     if (user) {
-        // Load data
-        await fetchGameDataFromFirestore();
+        // Turbo Initial Load
+        await refreshGlobalCache();
         await loadMapData();
 
         // Setup real-time listener
         setupRealtimeListener();
+
+        // Preload nearby images for better UX
+        preloadAdjacentMapImages();
 
         // Hide loading screen
         document.getElementById('loading-screen').classList.add('hidden');
@@ -1651,7 +1160,6 @@ const init = async () => {
                 const mapInfo = ALL_MAPS.find(m => m.name === currentMapData.name);
 
                 await renderMapDetails(currentMapData, mapInfo, raceState, currentMapIndex);
-                renderDetailedScoreboard();
                 updateNavigationButtons(currentMapIndex, raceState.maps.length);
 
                 window.scrollTo({ top: 0, behavior: 'smooth' });

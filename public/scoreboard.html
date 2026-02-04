@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng Điểm Chi Tiết | WeStar Team</title>
+    <link rel="icon" href="assets/images/logows.png" sizes="any">
+
+    <!-- CSS Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css">
+
+    <style>
+        /* ==================== VARIABLES & RESET ==================== */
+        :root {
+            --luxury-obsidian: #050508;
+            --luxury-charcoal: #0e0e14;
+            --luxury-graphite: #161621;
+            --luxury-titanium: #2a2a35;
+            --luxury-silver: #94a3b8;
+            --accent-cyan: #00f3ff;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-gold: #fbbf24;
+            --dark-bg: var(--luxury-obsidian);
+            --card-bg: var(--luxury-graphite);
+            --speed-gradient: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            --neon-cyan: #00f3ff;
+            --neon-blue: #0066ff;
+            --neon-purple: #9d00ff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-bg);
+            background-image:
+                radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 100% 100%, rgba(0, 243, 255, 0.03) 0%, transparent 40%);
+            color: #f1f5f9;
+            overflow-x: hidden;
+            min-height: 100vh;
+            line-height: 1.6;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+            border: 1px solid #1e293b;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        .racing-header {
+            letter-spacing: 1px;
+            color: #ffffff;
+            font-weight: 800;
+            text-transform: uppercase;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .neon-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            border-radius: 24px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Enhanced Table Stylings - MATCHING EXACTLY */
+        .speed-table {
+            background: rgba(18, 18, 26, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .speed-table thead {
+            background: linear-gradient(90deg, rgba(0, 243, 255, 0.15), rgba(0, 102, 255, 0.1));
+            border-bottom: 2px solid rgba(0, 243, 255, 0.3);
+        }
+
+        .speed-table th {
+            text-align: center;
+            vertical-align: middle;
+            padding: 20px 16px;
+            font-weight: 900;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .speed-table tbody tr {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .speed-table tbody tr:hover {
+            background: rgba(0, 243, 255, 0.08);
+            transform: scale(1.002);
+        }
+
+        .map-score-cell {
+            padding: 16px;
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: white;
+            text-shadow:
+                0 0 20px rgba(0, 243, 255, 0.9),
+                0 2px 6px rgba(0, 0, 0, 0.9),
+                0 0 40px rgba(0, 243, 255, 0.5);
+            letter-spacing: 1px;
+            font-family: 'Orbitron', sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        .map-column-header {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .map-column-header::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1;
+        }
+
+        .map-column-header-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .gradient-text {
+            background: var(--speed-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* ===================================
+           BACKGROUND EFFECTS - MATCHING EXACTLY
+           =================================== */
+
+        .background-effects {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .grid-background {
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background-image:
+                linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+            transform-origin: center;
+        }
+
+        @keyframes gridMove {
+            0% {
+                transform: perspective(500px) rotateX(60deg) translateY(0);
+            }
+
+            100% {
+                transform: perspective(500px) rotateX(60deg) translateY(50px);
+            }
+        }
+
+        .orbs-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.15;
+            animation: orbFloat 15s ease-in-out infinite;
+        }
+
+        .orb-1 {
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, #00f3ff, transparent);
+            top: 10%;
+            left: 10%;
+        }
+
+        .orb-2 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, #9d00ff, transparent);
+            top: 50%;
+            right: 10%;
+            animation-delay: 5s;
+        }
+
+        .orb-3 {
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, #ff00ff, transparent);
+            bottom: 10%;
+            left: 50%;
+            animation-delay: 10s;
+        }
+
+        @keyframes orbFloat {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            25% {
+                transform: translate(50px, -50px) scale(1.1);
+            }
+
+            50% {
+                transform: translate(-30px, 30px) scale(0.9);
+            }
+
+            75% {
+                transform: translate(40px, 40px) scale(1.05);
+            }
+        }
+
+        .speed-lines-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .speed-line {
+            position: absolute;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0, 243, 255, 0.5), transparent);
+            animation: speedLineMove 2s linear infinite;
+        }
+
+        @keyframes speedLineMove {
+            0% {
+                left: -100%;
+                opacity: 0;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                left: 100%;
+                opacity: 0;
+            }
+        }
+
+        .scanline {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, transparent 0%, rgba(0, 243, 255, 0.03) 50%, transparent 100%);
+            animation: scanlineMove 8s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scanlineMove {
+            0% {
+                transform: translateY(-100%);
+            }
+
+            100% {
+                transform: translateY(100%);
+            }
+        }
+
+        #particles-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .speed-particle {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(2px);
+            box-shadow: 0 0 10px currentColor;
+            animation: particleFloat linear infinite;
+        }
+
+        @keyframes particleFloat {
+            0% {
+                transform: translateY(100vh) translateX(0) scale(0);
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 1;
+                transform: translateY(90vh) translateX(calc(var(--dx) * 20px)) scale(1);
+            }
+
+            90% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-10vh) translateX(calc(var(--dx) * 100px)) scale(0);
+                opacity: 0;
+            }
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            border: 4px solid rgba(0, 243, 255, 0.1);
+            border-top: 4px solid var(--neon-cyan);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1.5s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .table-responsive-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 4px;
+            /* Space for scrollbar */
+        }
+
+        .table-responsive-wrapper::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .table-responsive-wrapper::-webkit-scrollbar-track {
+            background: rgba(18, 18, 26, 0.3);
+            border-radius: 4px;
+        }
+
+        .table-responsive-wrapper::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-blue));
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .table-responsive-wrapper::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Background Effects -->
+    <div class="background-effects">
+        <div class="grid-background"></div>
+        <div class="orbs-container">
+            <div class="orb orb-1"></div>
+            <div class="orb orb-2"></div>
+            <div class="orb orb-3"></div>
+        </div>
+        <div class="speed-lines-container"></div>
+        <div class="scanline"></div>
+    </div>
+    <div id="particles-container"></div>
+
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="fixed inset-0 flex flex-col items-center justify-center z-50 bg-black">
+        <div class="loading-spinner"></div>
+        <h2 class="text-2xl font-bold text-white mt-6 font-orbitron animate__animated animate__pulse">Đang tải bảng
+            điểm...</h2>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main-content" class="hidden min-h-screen">
+        <header class="border-b border-white/5 bg-slate-900/50 backdrop-blur-xl">
+            <div class="container mx-auto px-4 md:px-6 py-6">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div class="flex items-center gap-5">
+                        <button onclick="window.history.back()"
+                            class="flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 transition-all text-white font-bold group">
+                            <i class="fas fa-arrow-left group-hover:-translate-x-1 transition-transform"></i>
+                            <span>Quay lại</span>
+                        </button>
+                        <div>
+                            <h1 class="text-3xl font-black text-white font-orbitron tracking-tight">BẢNG ĐIỂM TỔNG KẾT
+                            </h1>
+                            <p class="text-slate-400 text-sm mt-1 flex items-center gap-2">
+                                <i class="fas fa-trophy text-yellow-500"></i>
+                                <span>Thành tích chi tiết tất cả các trận đấu</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-4">
+                        <div class="text-right">
+                            <div class="text-xs text-slate-500 uppercase font-bold tracking-widest">Cập nhật</div>
+                            <div class="text-cyan-400 font-black font-orbitron flex items-center gap-2">
+                                <span class="relative flex h-2 w-2">
+                                    <span
+                                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                                </span>
+                                LIVE
+                            </div>
+                        </div>
+                        <img src="assets/images/logows.png" alt="Logo" class="h-10 w-auto opacity-80">
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="container mx-auto px-4 py-10">
+            <section class="neon-card p-4 md:p-8 animate__animated animate__fadeIn">
+                <div class="table-responsive-wrapper rounded-2xl border border-white/5 shadow-2xl">
+                    <table class="speed-table min-w-full">
+                        <thead id="detailed-scoreboard-header">
+                            <!-- Header generated by JS -->
+                        </thead>
+                        <tbody id="detailed-scoreboard-body">
+                            <!-- Body generated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Legend -->
+                <div class="mt-8 flex flex-wrap gap-6 justify-center text-sm text-slate-400">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-flag text-red-500"></i>
+                        <span>Trận BTC (Điểm gốc)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-crown text-amber-500"></i>
+                        <span>Trận King của ai đó (King Map)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-cyan-400 font-bold">+11/12</span>
+                        <span>Điểm hạng nhất</span>
+                    </div>
+                </div>
+
+                <!-- Footer content moved here -->
+                <div class="mt-12 text-center pt-8 border-t border-white/5">
+                    <div class="relative inline-block mb-3">
+                        <img src="assets/images/logows.png" alt="Logo" class="h-10 w-auto mx-auto opacity-40">
+                    </div>
+                    <p class="text-slate-500 font-medium text-sm">&copy; WeStar Team 2026</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script type="module" src="./scoreboard.js"></script>
+
+    <script>
+        // Copy particles generation from map-detail.html
+        function createParticles() {
+            const container = document.getElementById('particles-container');
+            const speedLinesContainer = document.querySelector('.speed-lines-container');
+            const colors = ['#00f3ff', '#0066ff', '#9d00ff', '#ff00ff', '#00ff88'];
+
+            for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'speed-particle';
+                const size = Math.random() * 3 + 1;
+                const dx = Math.random() * 2 - 1;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.left = `${Math.random() * 100}vw`;
+                particle.style.animationDuration = `${Math.random() * 10 + 8}s`;
+                particle.style.animationDelay = `${Math.random() * 5}s`;
+                particle.style.setProperty('--dx', dx);
+                container.appendChild(particle);
+            }
+
+            for (let i = 0; i < 10; i++) {
+                const line = document.createElement('div');
+                line.className = 'speed-line';
+                const width = Math.random() * 200 + 100;
+                line.style.width = `${width}px`;
+                line.style.top = `${Math.random() * 100}%`;
+                line.style.animationDuration = `${Math.random() * 1.5 + 1}s`;
+                line.style.animationDelay = `${Math.random() * 5}s`;
+                speedLinesContainer.appendChild(line);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', createParticles);
+    </script>
+</body>
+
+</html>

@@ -9,7 +9,7 @@ class ThemeManager {
         this.LIGHT = 'light';
         this.DARK = 'dark';
         this.AUTO = 'auto';
-        
+
         this.lightColors = {
             '--neon-cyan': '#0088cc',
             '--neon-blue': '#0044ff',
@@ -57,41 +57,35 @@ class ThemeManager {
      * Khởi tạo Theme Manager
      */
     init() {
-        const savedTheme = localStorage.getItem(this.THEME_KEY) || this.AUTO;
-        this.setTheme(savedTheme);
+        // LUÔN LUÔN sử dụng chế độ Dark Mode theo yêu cầu
+        this.setTheme(this.DARK);
         this.setupToggleListener();
-        this.observeSystemThemeChange();
+        // Không lắng nghe sự thay đổi của hệ thống nữa để giữ Dark Mode cố định
+        // this.observeSystemThemeChange();
     }
 
     /**
      * Lấy chế độ hiện tại
      */
     getCurrentTheme() {
-        const saved = localStorage.getItem(this.THEME_KEY) || this.AUTO;
-        if (saved === this.AUTO) {
-            return this.getSystemTheme();
-        }
-        return saved;
+        return this.DARK;
     }
 
     /**
      * Lấy chế độ từ hệ thống
      */
     getSystemTheme() {
-        return window.matchMedia('(prefers-color-scheme: dark)').matches ? this.DARK : this.LIGHT;
+        return this.DARK;
     }
 
     /**
      * Đặt chế độ hiển thị
      */
     setTheme(theme) {
-        let actualTheme = theme;
-        
-        if (theme === this.AUTO) {
-            actualTheme = this.getSystemTheme();
-        }
+        // Ép buộc luôn là DARK bất kể đầu vào
+        const actualTheme = this.DARK;
 
-        const colors = actualTheme === this.DARK ? this.darkColors : this.lightColors;
+        const colors = this.darkColors;
         const root = document.documentElement;
 
         // Cập nhật CSS variables
@@ -103,55 +97,38 @@ class ThemeManager {
         document.documentElement.setAttribute('data-theme', actualTheme);
         document.body.setAttribute('data-theme', actualTheme);
 
-        // Lưu preference
-        localStorage.setItem(this.THEME_KEY, theme);
+        // Lưu preference (vẫn lưu DARK để đồng bộ)
+        localStorage.setItem(this.THEME_KEY, this.DARK);
 
         // Trigger event
-        window.dispatchEvent(new CustomEvent('themeChanged', { 
-            detail: { theme: actualTheme, preference: theme }
+        window.dispatchEvent(new CustomEvent('themeChanged', {
+            detail: { theme: actualTheme, preference: this.DARK }
         }));
 
-        console.log(`🎨 Theme changed to: ${actualTheme} (preference: ${theme})`);
+        console.log(`🎨 Forced Theme: ${actualTheme}`);
     }
 
     /**
      * Toggle giữa dark/light
      */
     toggleTheme() {
-        const current = localStorage.getItem(this.THEME_KEY) || this.AUTO;
-        let next;
-
-        if (current === this.AUTO) {
-            next = this.getSystemTheme() === this.DARK ? this.LIGHT : this.DARK;
-        } else if (current === this.DARK) {
-            next = this.LIGHT;
-        } else {
-            next = this.DARK;
-        }
-
-        this.setTheme(next);
-        return next;
+        // Vô hiệu hóa tính năng chuyển đổi, luôn giữ Dark Mode
+        this.setTheme(this.DARK);
+        return this.DARK;
     }
 
     /**
      * Đặt thành chế độ auto
      */
     setAutoTheme() {
-        this.setTheme(this.AUTO);
+        this.setTheme(this.DARK);
     }
 
     /**
      * Lắng nghe sự thay đổi chế độ hệ thống
      */
     observeSystemThemeChange() {
-        const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        
-        darkModeQuery.addEventListener('change', (e) => {
-            const saved = localStorage.getItem(this.THEME_KEY);
-            if (saved === this.AUTO) {
-                this.setTheme(this.AUTO);
-            }
-        });
+        // Vô hiệu hóa theo yêu cầu giữ Dark Mode cố định
     }
 
     /**
@@ -171,11 +148,11 @@ class ThemeManager {
     getToggleIcon() {
         const current = localStorage.getItem(this.THEME_KEY) || this.AUTO;
         const pref = this.getCurrentTheme();
-        
+
         if (current === this.AUTO) {
             return pref === this.DARK ? 'fa-moon' : 'fa-sun';
         }
-        
+
         return current === this.DARK ? 'fa-moon' : 'fa-sun';
     }
 
@@ -185,11 +162,11 @@ class ThemeManager {
     getThemeStatus() {
         const pref = localStorage.getItem(this.THEME_KEY) || this.AUTO;
         const actual = this.getCurrentTheme();
-        
+
         if (pref === this.AUTO) {
             return `Auto (${actual === this.DARK ? 'Dark' : 'Light'})`;
         }
-        
+
         return pref === this.DARK ? 'Dark' : 'Light';
     }
 }
