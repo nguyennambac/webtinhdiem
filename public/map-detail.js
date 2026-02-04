@@ -477,9 +477,20 @@ const renderMapDetails = async (mapData, mapInfo, raceState, mapIndex) => {
         broadcastMapName.textContent = mapData.name || "NONAME";
     }
 
+    const translateDifficulty = (diff) => {
+        const translations = {
+            "Cực khó": "Extreme",
+            "Rất khó": "Very Hard",
+            "Khó": "Hard",
+            "Trung bình": "Medium",
+            "Dễ": "Easy"
+        };
+        return translations[diff] || diff || "Medium";
+    };
+
     const broadcastMapDifficulty = document.getElementById('broadcast-map-difficulty');
     if (broadcastMapDifficulty) {
-        broadcastMapDifficulty.textContent = mapInfo?.difficulty || "Medium";
+        broadcastMapDifficulty.textContent = translateDifficulty(mapInfo?.difficulty);
     }
 
     // Update map selection rate (as Laps placeholder if needed or additional info)
