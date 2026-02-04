@@ -26,9 +26,9 @@ import {
 // Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyDtFpBAuZ_3JHmMXq1uVShq4sm0zK9xqEI",
-    authDomain: "westartrain.firebaseapp.com",
-    projectId: "westartrain",
-    storageBucket: "westartrain.firebasestorage.app",
+    authDomain: "tinhdiemtheog.firebaseapp.com",
+    projectId: "tinhdiemtheog",
+    storageBucket: "tinhdiemtheog.firebasestorage.app",
     messagingSenderId: "52564586448",
     appId: "1:52564586448:web:983bdc321423b81f5a53d5",
     measurementId: "G-PFTMHMTF6J"
@@ -170,13 +170,20 @@ const checkAdminStatus = async (user) => {
                 document.getElementById('realtime-status').textContent = statusText;
 
                 // Hiển thị avatar - ưu tiên Base64 nếu có
+                const avatarEl = document.getElementById('user-avatar');
                 if (userData.photoBase64) {
-                    document.getElementById('user-avatar').src = userData.photoBase64;
+                    avatarEl.src = userData.photoBase64;
                 } else if (userData.photoURL) {
-                    document.getElementById('user-avatar').src = userData.photoURL;
+                    avatarEl.src = userData.photoURL;
                 } else if (user.photoURL) {
-                    document.getElementById('user-avatar').src = user.photoURL;
+                    avatarEl.src = user.photoURL;
                 }
+
+                // Add error handler for broken images (403 Forbidden from FB/Google)
+                avatarEl.onerror = function () {
+                    this.onerror = null; // Prevent infinite loop
+                    this.src = 'assets/images/default-avatar.png';
+                };
 
                 // Tải dữ liệu dashboard khi vào trang
                 await loadDashboardStats();

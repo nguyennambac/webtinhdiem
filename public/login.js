@@ -5,9 +5,9 @@ import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/fireb
 // Firebase config
 const firebaseConfig = {
     apiKey: "AIzaSyDtFpBAuZ_3JHmMXq1uVShq4sm0zK9xqEI",
-    authDomain: "westartrain.firebaseapp.com",
-    projectId: "westartrain",
-    storageBucket: "westartrain.firebasestorage.app",
+    authDomain: "tinhdiemtheog.firebaseapp.com",
+    projectId: "tinhdiemtheog",
+    storageBucket: "tinhdiemtheog.firebasestorage.app",
     messagingSenderId: "52564586448",
     appId: "1:52564586448:web:983bdc321423b81f5a53d5",
     measurementId: "G-PFTMHMTF6J"
@@ -75,15 +75,15 @@ const checkAuthStatus = async (user) => {
         try {
             const userRef = doc(db, "users", user.uid);
             const userDoc = await getDoc(userRef);
-            
+
             if (userDoc.exists()) {
                 const userData = userDoc.data();
-                
+
                 // Check if user is banned using status field
                 if (userData.status === 'banned') {
                     // Sign out the user
                     await auth.signOut();
-                    
+
                     // Show banned message
                     displayError("❌ Tài khoản của bạn đã bị cấm. Vui lòng liên hệ admin để biết thêm chi tiết.");
                     loginButton.classList.remove('hidden');
@@ -94,7 +94,7 @@ const checkAuthStatus = async (user) => {
         } catch (error) {
             console.error("Error checking user status:", error);
         }
-        
+
         const saveResult = await saveUserToFirestore(user);
 
         if (saveResult.success) {

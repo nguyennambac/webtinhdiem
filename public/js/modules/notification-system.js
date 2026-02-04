@@ -201,11 +201,8 @@ class NotificationSystem {
                 setTimeout(() => toast.remove(), 300);
             }, notification.persistent ? Infinity : this.notificationDuration);
         }
-
-        /**
-         * Cập nhật badge
-         */
     }
+
 
     /**
      * Cập nhật badge
