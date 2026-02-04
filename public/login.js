@@ -5,9 +5,9 @@ import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/fireb
 // Firebase config
 const firebaseConfig = {
     apiKey: "AIzaSyDtFpBAuZ_3JHmMXq1uVShq4sm0zK9xqEI",
-    authDomain: "tinhdiemtheog.firebaseapp.com",
-    projectId: "tinhdiemtheog",
-    storageBucket: "tinhdiemtheog.firebasestorage.app",
+    authDomain: "westartrain.firebaseapp.com",
+    projectId: "westartrain",
+    storageBucket: "westartrain.firebasestorage.app",
     messagingSenderId: "52564586448",
     appId: "1:52564586448:web:983bdc321423b81f5a53d5",
     measurementId: "G-PFTMHMTF6J"

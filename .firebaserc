@@ -1,14 +1,5 @@
 {
   "projects": {
-    "default": "fleet-rhino-318315"
-  },
-  "targets": {
-    "fleet-rhino-318315": {
-      "hosting": {
-        "webtinhdiem": [
-          "webtinhdiem-d75e0"
-        ]
-      }
-    }
+    "default": "westartrain"
   }
 }
