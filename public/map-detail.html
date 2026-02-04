@@ -2118,30 +2118,15 @@
                 </div>
 
                 <!-- Center Column: Map Hero & Stats -->
-                <div id="middle-column-broadcast" class="broadcast-map-panel flex flex-col gap-4">
-                    <!-- Broadcast Header -->
-                    <div class="flex items-center justify-between px-2">
-                        <div class="flex items-center gap-2">
-                            <i class="fas fa-satellite-dish text-rose-500 animate-pulse"></i>
-                            <span class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">BẢN ĐỒ ĐANG
-                                ĐUA</span>
-                        </div>
-                        <div
-                            class="bg-rose-500/10 text-rose-500 text-[10px] font-black px-2 py-0.5 rounded leading-tight border border-rose-500/20">
-                            LIVE</div>
-                    </div>
-
+                <div id="middle-column-broadcast" class="broadcast-map-panel flex flex-col gap-6">
                     <!-- Map Hero Card -->
                     <div class="map-hero-card">
                         <div id="map-hero-image" class="map-hero-image"
                             style="background-image: url('assets/images/map-placeholder.jpg');">
                             <div class="map-hero-overlay">
                                 <div class="map-hero-info">
-                                    <div
-                                        class="label uppercase tracking-widest text-[10px] font-bold text-slate-400 mb-1">
-                                        TÊN BẢN ĐỒ</div>
-                                    <div id="broadcast-map-name"
-                                        class="value text-4xl font-black text-white leading-tight">ĐANG TẢI...</div>
+                                    <div class="label">Map</div>
+                                    <div id="broadcast-map-name" class="value">ĐANG TẢI...</div>
                                 </div>
                                 <div class="map-hero-stats font-orbitron">
                                     <div class="hero-stat-item">
@@ -2164,49 +2149,28 @@
                     <!-- Rankings Section below Hero -->
                     <div class="rankings-grid">
                         <!-- Best Racer Info -->
-                        <div class="best-racer-card p-6 bg-slate-900/40 border border-white/5 rounded-2xl">
-                            <div class="flex justify-between items-center mb-6">
-                                <div>
-                                    <div class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-1">KỶ
-                                        LỤC HIỆN TẠI</div>
-                                    <div id="broadcast-best-record"
-                                        class="text-4xl font-black text-white font-orbitron">0:00.00</div>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <div class="text-right">
-                                        <div id="broadcast-best-racer-name"
-                                            class="text-lg font-black text-white leading-tight">---------</div>
-                                        <div class="text-[9px] font-black uppercase text-slate-500 tracking-tighter">
-                                            RECORD HOLDER</div>
+                        <div class="best-racer-card">
+                            <div class="best-racer-header">Best Racer</div>
+                            <div id="broadcast-best-racer-name" class="best-racer-name">XXXXXXXXX</div>
+                            <div class="flex items-center gap-12">
+                                <div class="flex flex-col gap-1">
+                                    <div class="text-[10px] font-extrabold uppercase text-slate-400">Car</div>
+                                    <div id="broadcast-best-racer-car" class="best-racer-equipment">
+                                        <i class="fas fa-car text-slate-300"></i>
                                     </div>
-                                    <div id="broadcast-best-racer-avatar-container" class="relative">
-                                        <div class="w-12 h-12 rounded-full bg-slate-800 border-2 border-slate-700/50 flex items-center justify-center overflow-hidden shadow-xl"
-                                            id="broadcast-best-racer-avatar">
-                                            <i class="fas fa-user text-slate-600 text-xl"></i>
-                                        </div>
+                                </div>
+                                <div class="flex flex-col gap-1">
+                                    <div class="text-[10px] font-extrabold uppercase text-slate-400">Pet</div>
+                                    <div id="broadcast-best-racer-pet" class="best-racer-equipment">
+                                        <i class="fas fa-paw text-slate-300"></i>
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="pt-4 border-t border-white/5 flex items-center gap-6">
-                                <span class="text-[10px] font-black uppercase text-slate-500 tracking-widest">TRANG
-                                    BỊ:</span>
-                                <div class="flex items-center gap-8">
-                                    <div class="flex items-center gap-3">
-                                        <div id="broadcast-best-racer-car" class="h-8 flex items-center">
-                                            <i class="fas fa-car text-slate-700"></i>
-                                        </div>
-                                        <div id="broadcast-best-racer-car-name"
-                                            class="text-xs font-bold text-slate-400">---</div>
-                                    </div>
-                                    <div class="flex items-center gap-3">
-                                        <div id="broadcast-best-racer-pet" class="h-8 flex items-center">
-                                            <i class="fas fa-paw text-slate-700"></i>
-                                        </div>
-                                        <div id="broadcast-best-racer-pet-name"
-                                            class="text-xs font-bold text-slate-400">---</div>
-                                    </div>
-                                </div>
+                            <div class="mt-2">
+                                <div class="text-[10px] font-extrabold uppercase text-slate-400">Best Record</div>
+                                <div id="broadcast-best-record"
+                                    class="text-4xl font-black text-cyan-400 font-orbitron drop-shadow-[0_0_15px_rgba(6,182,212,0.6)]">
+                                    0:00.00</div>
                             </div>
                         </div>
 

@@ -999,9 +999,18 @@ const updateStatistics = () => {
         // Cập nhật tên tay đua và Avatar
         const bestRacerElement = document.getElementById('current-best-racer');
         if (bestRacerElement) {
-            const userInfo = ALL_USERS.find(u => u.displayName === stats.currentMapRecordRacer);
-            const userAvatar = (userInfo && userInfo.photoURL && userInfo.photoURL !== 'logoWS.png') ?
-                `<img src="${userInfo.photoURL}" class="w-8 h-8 rounded-full object-cover border-2 border-white/20 shadow-lg animate-pulse-subtle" alt="avatar">` :
+            // **MỚI: Tìm theo nickname hoặc displayName**
+            const racerName = stats.currentMapRecordRacer;
+            const userInfo = ALL_USERS.find(u =>
+                (u.nickname && u.nickname.trim() === racerName.trim()) ||
+                (u.displayName && u.displayName.trim() === racerName.trim())
+            );
+
+            const avatarSrc = (userInfo && userInfo.photoBase64) ? userInfo.photoBase64 :
+                (userInfo && userInfo.photoURL && userInfo.photoURL !== 'logoWS.png') ? userInfo.photoURL : null;
+
+            const userAvatar = avatarSrc ?
+                `<img src="${avatarSrc}" class="w-8 h-8 rounded-full object-cover border-2 border-white/20 shadow-lg animate-pulse-subtle" alt="avatar">` :
                 `<div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 opacity-70">
                     <i class="fas fa-user-ninja text-slate-500 text-xs"></i>
                 </div>`;
@@ -1131,12 +1140,25 @@ const renderHallOfFame = async () => {
                 const medal = medals[index] || '';
                 const bgClass = 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10';
 
+                // **MỚI: Lấy Avatar của Racer**
+                const userInfo = ALL_USERS.find(u =>
+                    (u.nickname && u.nickname.trim() === racer.name.trim()) ||
+                    (u.displayName && u.displayName.trim() === racer.name.trim())
+                );
+
+                const avatarSrc = (userInfo && userInfo.photoBase64) ? userInfo.photoBase64 :
+                    (userInfo && userInfo.photoURL && userInfo.photoURL !== 'logoWS.png') ? userInfo.photoURL : null;
+
+                const userAvatar = avatarSrc ?
+                    `<img src="${avatarSrc}" class="w-8 h-8 rounded-lg object-cover border border-white/10 shadow-lg" alt="avatar">` :
+                    `<span class="text-xl w-8 h-8 flex items-center justify-center bg-black/20 rounded-lg flex-shrink-0 font-bold text-white shadow-inner">
+                        ${medal || index + 1}
+                    </span>`;
+
                 return `
                     <div class="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r ${bgClass} border hover:scale-[1.02] transition-all duration-300">
                         <div class="flex items-center space-x-3 flex-1 min-w-0">
-                            <span class="text-xl w-8 h-8 flex items-center justify-center bg-black/20 rounded-lg flex-shrink-0 font-bold text-white shadow-inner">
-                                ${medal || index + 1}
-                            </span>
+                            ${userAvatar}
                             <div class="min-w-0 flex-1">
                                 <div class="font-black text-white text-sm truncate uppercase tracking-tight">${racer.name}</div>
                                 <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">${racer.count} Trận Đấu</div>
@@ -1164,10 +1186,18 @@ const renderHallOfFame = async () => {
                 const crown = crowns[index] || '';
                 const bgClass = 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10'; // Simplified background
 
-                // Lấy Avatar của Holder
-                const userInfo = ALL_USERS.find(u => u.displayName === holder.name);
-                const userAvatar = (userInfo && userInfo.photoURL && userInfo.photoURL !== 'logoWS.png') ?
-                    `<img src="${userInfo.photoURL}" class="w-8 h-8 rounded-lg object-cover border border-white/10" alt="avatar">` :
+                // **MỚI: Tìm theo nickname hoặc displayName**
+                const holderName = holder.name;
+                const userInfo = ALL_USERS.find(u =>
+                    (u.nickname && u.nickname.trim() === holderName.trim()) ||
+                    (u.displayName && u.displayName.trim() === holderName.trim())
+                );
+
+                const avatarSrc = (userInfo && userInfo.photoBase64) ? userInfo.photoBase64 :
+                    (userInfo && userInfo.photoURL && userInfo.photoURL !== 'logoWS.png') ? userInfo.photoURL : null;
+
+                const userAvatar = avatarSrc ?
+                    `<img src="${avatarSrc}" class="w-8 h-8 rounded-lg object-cover border border-white/10 shadow-lg" alt="avatar">` :
                     `<span class="text-xl w-8 h-8 flex items-center justify-center bg-black/20 rounded-lg flex-shrink-0 shadow-inner">
                         ${crown || index + 1}
                     </span>`;
@@ -1894,9 +1924,25 @@ const renderRankingTable = (rankingData) => {
                     ${rankContent}
                 </td>
                 <td class="px-6 py-5">
-                    <div class="flex flex-col items-center">
-                        <span class="text-sm font-black text-white uppercase tracking-tight">${racer.name}</span>
-                        <span class="text-[9px] text-slate-600 uppercase font-black tracking-widest mt-1">Player ${racer.originalIndex + 1}</span>
+                    <div class="flex items-center space-x-3">
+                        ${(() => {
+                const userInfo = ALL_USERS.find(u =>
+                    (u.nickname && u.nickname.trim() === racer.name.trim()) ||
+                    (u.displayName && u.displayName.trim() === racer.name.trim())
+                );
+                const avatarSrc = (userInfo && userInfo.photoBase64) ? userInfo.photoBase64 :
+                    (userInfo && userInfo.photoURL && userInfo.photoURL !== 'logoWS.png') ? userInfo.photoURL : null;
+
+                return avatarSrc ?
+                    `<img src="${avatarSrc}" class="w-8 h-8 rounded-lg object-cover border border-white/10 shadow-lg" alt="avatar">` :
+                    `<div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center border border-white/5 opacity-50">
+                                    <i class="fas fa-user-ninja text-[10px] text-slate-600"></i>
+                                </div>`;
+            })()}
+                        <div class="flex flex-col">
+                            <span class="text-sm font-black text-white uppercase tracking-tight text-left">${racer.name}</span>
+                            <span class="text-[9px] text-slate-600 uppercase font-black tracking-widest mt-1 text-left">Player ${racer.originalIndex + 1}</span>
+                        </div>
                     </div>
                 </td>
                 <td class="px-6 py-5">
@@ -2945,7 +2991,8 @@ const loadAvailableRacers = async () => {
                     id: doc.id,
                     displayName: data.displayName || 'Unnamed',
                     nickname: data.nickname || '',
-                    photoURL: data.photoURL || 'logoWS.png'
+                    photoURL: data.photoURL || 'logoWS.png',
+                    photoBase64: data.photoBase64 || null
                 });
             }
         });
