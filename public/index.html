@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
+
     <style>
         /* ==================== VARIABLES & RESET ==================== */
         :root {
@@ -218,8 +219,49 @@
             transform: translateX(-100%);
         }
 
-        body.sidebar-collapsed .main-content {
-            margin-left: 0 !important;
+        @media (min-width: 1024px) {
+            body.sidebar-collapsed .sidebar-modern {
+                transform: none;
+                width: 100px;
+            }
+
+            body.sidebar-collapsed .main-content {
+                margin-left: 100px !important;
+            }
+
+            body.sidebar-collapsed .sidebar-text,
+            body.sidebar-collapsed .sidebar-link-modern span,
+            body.sidebar-collapsed .neon-badge,
+            body.sidebar-collapsed .sidebar-footer {
+                display: none;
+            }
+
+            body.sidebar-collapsed .sidebar-modern .flex-1 {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+
+            body.sidebar-collapsed .sidebar-link-modern {
+                justify-content: center;
+                width: 54px;
+                padding: 14px 0;
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+            body.sidebar-collapsed .sidebar-link-modern i {
+                margin-right: 0;
+                font-size: 1.25rem;
+            }
+
+            body.sidebar-collapsed #sidebar-toggle-in i {
+                transform: rotate(180deg);
+            }
+
+            body.sidebar-collapsed .sidebar-modern .border-b {
+                justify-content: center;
+            }
         }
 
         .sidebar-overlay {
@@ -1419,23 +1461,28 @@
         <!-- Sidebar -->
         <aside class="sidebar-modern w-72 fixed top-0 bottom-0 overflow-y-auto z-20 hidden lg:block">
             <div class="p-6 h-full flex flex-col">
-                <div class="flex items-center space-x-3 mb-10 pb-4 border-b border-slate-800/50 cursor-pointer group"
-                    onclick="location.reload();">
-                    <div class="relative">
-                        <div
-                            class="absolute -inset-1 bg-gradient-speed rounded-full blur opacity-30 group-hover:opacity-50 transition-opacity duration-500">
+                <div class="flex items-center justify-between mb-8 pb-4 border-b border-slate-800/50">
+                    <div class="flex items-center space-x-3 cursor-pointer group" onclick="location.reload();">
+                        <div class="relative">
+                            <div
+                                class="absolute -inset-1 bg-gradient-speed rounded-full blur opacity-30 group-hover:opacity-50 transition-opacity duration-500">
+                            </div>
+                            <img class="h-10 w-10 rounded-full object-cover border-2 border-cyan-500 relative group-hover:border-cyan-400 transition-all-smooth group-hover:scale-110"
+                                src="assets/images/logows.png" alt="Logo">
+                            <div
+                                class="absolute -bottom-1 -right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-dark-bg animate-pulse">
+                            </div>
                         </div>
-                        <img class="h-12 w-12 rounded-full object-cover border-2 border-cyan-500 relative group-hover:border-cyan-400 transition-all-smooth group-hover:scale-110"
-                            src="assets/images/logows.png" alt="Logo">
-                        <div
-                            class="absolute -bottom-1 -right-1 h-5 w-5 bg-green-500 rounded-full border-2 border-dark-bg animate-pulse">
+                        <div class="sidebar-text">
+                            <span class="text-xl font-bold racing-header block">WESTAR</span>
+                            <div class="text-[10px] text-cyan-400 font-semibold tracking-wider">Westar Team</div>
                         </div>
                     </div>
-                    <div>
-                        <span class="text-2xl font-bold racing-header">WESTAR DASHBOARD</span>
-                        <div class="text-xs text-cyan-400 font-semibold mt-1 tracking-wider">Westar Team
-                        </div>
-                    </div>
+                    <button id="sidebar-toggle-in"
+                        class="text-slate-400 p-2 rounded-lg hover:bg-white/5 transition-all-smooth"
+                        onclick="toggleSidebar()">
+                        <i class="fas fa-chevron-left text-lg"></i>
+                    </button>
                 </div>
 
                 <nav class="space-y-1 flex-1">
@@ -1517,7 +1564,7 @@
                 <div class="flex items-center justify-between p-4 px-6">
                     <div class="flex items-center">
                         <button id="sidebar-toggle"
-                            class="mr-4 text-slate-300 p-2 rounded-lg hover:bg-white/5 transition-all-smooth"
+                            class="mr-4 text-slate-300 p-2 rounded-lg hover:bg-white/5 transition-all-smooth lg:hidden"
                             onclick="toggleSidebar()">
                             <i class="fas fa-bars text-xl"></i>
                         </button>
@@ -1550,11 +1597,17 @@
                             <!-- Dropdown thông báo -->
                             <div id="notification-dropdown"
                                 class="absolute right-0 mt-2 w-80 glass-card z-30 hidden overflow-hidden">
-                                <div class="p-4 border-b border-slate-800/50 flex justify-between items-center">
-                                    <h3 class="font-bold text-white">Thông báo</h3>
-                                    <button id="mark-all-read"
-                                        class="text-sm text-cyan-400 hover:text-cyan-300 transition-colors">Đánh dấu đã
-                                        đọc</button>
+                                <div
+                                    class="p-4 border-b border-slate-800/50 flex justify-between items-center bg-slate-900/50">
+                                    <h3 class="font-bold text-white text-sm">Thông báo</h3>
+                                    <div class="flex items-center gap-3">
+                                        <button id="mark-all-read"
+                                            class="text-[11px] text-cyan-400 hover:text-cyan-300 transition-colors uppercase font-bold tracking-wider">Đọc
+                                            hết</button>
+                                        <button id="delete-all-notifications"
+                                            class="text-[11px] text-red-400 hover:text-red-300 transition-colors uppercase font-bold tracking-wider">Xoá
+                                            hết</button>
+                                    </div>
                                 </div>
                                 <div id="notification-list" class="max-h-96 overflow-y-auto">
                                     <div class="p-8 text-center text-slate-500">

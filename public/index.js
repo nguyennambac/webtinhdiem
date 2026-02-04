@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, deleteDoc, getDoc, onSnapshot, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, setPersistence, browserLocalPersistence, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
 // ================ MOBILE SIDEBAR TOGGLE ================
@@ -4888,10 +4888,13 @@ const initNotificationSystem = () => {
         }
     });
 
-    // Đánh dấu tất cả đã đọc
-    if (markAllReadButton) {
-        markAllReadButton.addEventListener('click', () => {
-            markAllNotificationsAsRead();
+    // Xoá tất cả thông báo
+    const deleteAllButton = document.getElementById('delete-all-notifications');
+    if (deleteAllButton) {
+        deleteAllButton.addEventListener('click', () => {
+            if (confirm("Bạn có chắc chắn muốn xoá tất cả thông báo?")) {
+                deleteAllNotifications();
+            }
         });
     }
 
@@ -5133,6 +5136,32 @@ window.deleteNotification = async (notificationId, event) => {
 };
 
 // Đánh dấu tất cả thông báo đã đọc
+const deleteAllNotifications = async () => {
+    try {
+        if (!userId) return;
+
+        if (notifications.length === 0) {
+            displayMessage("Không có thông báo nào để xoá", false);
+            return;
+        }
+
+        const batch = [];
+
+        notifications.forEach(notification => {
+            const ref = doc(db, "users", userId, "notifications", notification.id);
+            batch.push(deleteDoc(ref));
+        });
+
+        if (batch.length > 0) {
+            await Promise.all(batch);
+            displayMessage("Đã xoá tất cả thông báo", false);
+        }
+    } catch (error) {
+        console.error("Lỗi khi xoá thông báo:", error);
+        displayMessage("Lỗi khi xoá thông báo", true);
+    }
+};
+
 const markAllNotificationsAsRead = async () => {
     try {
         console.log("Đánh dấu TẤT CẢ thông báo đã đọc");
