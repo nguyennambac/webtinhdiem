@@ -39,30 +39,70 @@ class UserProfileManager {
      * Tạo trang profile
      */
     async createProfilePage() {
-        // Load fresh data before showing profile
-        await this.loadUserStats();
+        // 1. Create and show container immediately
+        let container = document.getElementById('user-profile-page');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'user-profile-page';
+            document.body.appendChild(container);
+        }
 
-        const container = document.createElement('div');
-        container.id = 'user-profile-page';
         container.style.cssText = `
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(10, 10, 15, 0.95);
-            backdrop-filter: blur(10px);
+            background: rgba(10, 10, 15, 0.98);
+            backdrop-filter: blur(15px);
             z-index: 5000;
             overflow-y: auto;
             padding: 20px;
-            animation: fadeIn 0.3s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
         `;
 
-        const profile = await this.buildProfileHTML();
-        container.innerHTML = profile;
+        // Loading state
+        container.innerHTML = `
+            <div id="profile-loader" style="text-align: center; color: var(--neon-cyan); font-family: 'Orbitron', sans-serif;">
+                <div class="fas fa-circle-notch fa-spin" style="font-size: 4rem; margin-bottom: 25px; filter: drop-shadow(0 0 10px var(--neon-cyan));"></div>
+                <div style="letter-spacing: 4px; text-transform: uppercase; font-weight: 700; animate: pulse 1.5s infinite;">Đang đồng bộ dữ liệu...</div>
+                <button onclick="document.getElementById('user-profile-page').remove()" style="margin-top: 30px; background: none; border: 1px solid rgba(255,255,255,0.2); color: #666; padding: 8px 20px; border-radius: 20px; cursor: pointer;">Hủy</button>
+            </div>
+        `;
 
-        document.body.appendChild(container);
-        this.setupProfileInteractions(container);
+        // Reveal with animation
+        requestAnimationFrame(() => {
+            container.style.opacity = '1';
+        });
+
+        // 2. Load fresh data in background
+        try {
+            // If we have some data already, we could show it, but for now let's just wait and optimize the load
+            await this.loadUserStats();
+            const profile = await this.buildProfileHTML();
+
+            // 3. Update UI
+            container.style.display = 'block';
+            container.style.alignItems = 'initial';
+            container.style.justifyContent = 'initial';
+            container.innerHTML = profile;
+
+            this.setupProfileInteractions(container);
+        } catch (error) {
+            console.error("Lỗi khi hiển thị profile:", error);
+            container.innerHTML = `
+                <div style="color: white; text-align: center; font-family: 'Orbitron', sans-serif;">
+                    <i class="fas fa-exclamation-triangle text-amber-500 mb-4" style="font-size: 3rem;"></i>
+                    <h2>HỆ THỐNG GẶP LỖI</h2>
+                    <p style="color: #64748b;">Không thể tải dữ liệu hồ sơ. Vui lòng thử lại sau.</p>
+                    <button onclick="document.getElementById('user-profile-page').remove()" style="margin-top: 20px; background: var(--neon-cyan); color: black; padding: 10px 30px; border-radius: 10px; font-weight: bold; cursor: pointer;">ĐÓNG</button>
+                </div>
+            `;
+        }
 
         return container;
     }
@@ -1236,12 +1276,13 @@ class UserProfileManager {
      */
     async loadRecordMaps(userNickname) {
         try {
-            const { getFirestore, collection, getDocs } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+            const { getFirestore, collection, getDocs, query, where } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
             const db = getFirestore();
 
             console.log('🏆 Đang tìm bản đồ kỷ lục cho:', userNickname);
 
-            const mapsSnapshot = await getDocs(collection(db, "gameMaps"));
+            const q = query(collection(db, "gameMaps"), where("recordRacer", "==", userNickname));
+            const mapsSnapshot = await getDocs(q);
 
             if (mapsSnapshot.empty) {
                 console.log('⚠️ Không có gameMaps trong Firestore');
@@ -1304,7 +1345,7 @@ class UserProfileManager {
             console.log('✅ Người dùng có quyền truy cập hồ sơ cá nhân');
 
             // Import Firestore functions
-            const { getFirestore, doc, getDoc, collection, getDocs } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+            const { getFirestore, doc, getDoc, collection, getDocs, query, where } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
             const db = getFirestore();
             const userId = user.uid;
 
@@ -1314,12 +1355,12 @@ class UserProfileManager {
                 const userDoc = await getDoc(doc(db, "users", userId));
                 if (userDoc.exists()) {
                     const userData = userDoc.data();
+                    this.currentUserData = userData; // Lưu để dùng lại
                     this.userStats.bio = userData.bio || '';
                     this.userStats.socialLinks = userData.socialLinks || {};
                     userNickname = userData.nickname || user.displayName || '';
                     console.log('✅ Đã tải user profile từ Firestore');
                     console.log('🏷️ Nickname:', userNickname);
-                    console.log('✅ Người dùng bình thường có đầy đủ quyền truy cập và chỉnh sửa hồ sơ');
                 }
             } catch (error) {
                 console.log('⚠️ Không thể tải profile data:', error);
@@ -1338,7 +1379,8 @@ class UserProfileManager {
             this.userStats.recordMaps = recordMaps;
 
             // Get all race records and filter by nickname
-            const recordsSnapshot = await getDocs(collection(db, "raceRecords"));
+            const q = query(collection(db, "raceRecords"), where("racerName", "==", userNickname));
+            const recordsSnapshot = await getDocs(q);
 
             if (recordsSnapshot.empty) {
                 console.log('⚠️ Không có race records trong Firestore');
@@ -1356,22 +1398,8 @@ class UserProfileManager {
                 return;
             }
 
-            // Filter records by racerName matching user's nickname
-            const allRecords = recordsSnapshot.docs.map(doc => doc.data());
-
-            console.log(`📊 Tổng số records trong Firestore: ${allRecords.length}`);
-            console.log(`🔎 Đang tìm records cho nickname: "${userNickname}"`);
-
-            // List unique racerNames for debugging
-            const uniqueRacers = [...new Set(allRecords.map(r => r.racerName))];
-            console.log('👥 Danh sách tay đua có trong DB:', uniqueRacers);
-
-            const userRecords = allRecords.filter(r => {
-                const match = r.racerName === userNickname;
-                if (match) console.log('✓ Found match:', r.racerName);
-                return match;
-            });
-
+            // Calculate stats from records
+            const userRecords = recordsSnapshot.docs.map(doc => doc.data());
             console.log(`📊 Tìm thấy ${userRecords.length} records cho ${userNickname}`);
 
             if (userRecords.length === 0) {
