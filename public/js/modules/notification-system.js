@@ -201,138 +201,143 @@ class NotificationSystem {
                 setTimeout(() => toast.remove(), 300);
             }, notification.persistent ? Infinity : this.notificationDuration);
         }
-    }
 
-    /**
-     * Cập nhật badge
-     */
-    updateBadge() {
-        const badge = document.getElementById('unread-badge');
-        if (!badge) return;
-
-        this.unreadCount = this.notifications.filter(n => !n.read).length;
-
-        if (this.unreadCount > 0) {
-            badge.textContent = this.unreadCount > 99 ? '99+' : this.unreadCount;
-            badge.style.display = 'flex';
-        } else {
-            badge.style.display = 'none';
-        }
-    }
-
-    /**
-     * Xóa notification
-     */
-    removeNotification(id) {
-        this.notifications = this.notifications.filter(n => n.id !== id);
-        const element = document.getElementById(`notification-${id}`);
-        if (element) element.remove();
-        this.updateBadge();
-        this.saveNotifications();
-    }
-
-    /**
-     * Clear all notifications
-     */
-    clearAll() {
-        this.notifications = [];
-        this.unreadCount = 0;
-        this.updateBadge();
-        const container = document.getElementById('notification-container');
-        if (container) container.innerHTML = '';
-        this.saveNotifications();
-    }
-
-    /**
-     * Event listeners
-     */
-    on(eventName, callback) {
-        if (!this.events.has(eventName)) {
-            this.events.set(eventName, []);
-        }
-        this.events.get(eventName).push(callback);
-    }
-
-    /**
-     * Trigger event
-     */
-    emit(eventName, data) {
-        if (this.events.has(eventName)) {
-            this.events.get(eventName).forEach(callback => callback(data));
-        }
-    }
-
-    /**
-     * Helper: Get icon color
-     */
-    getIconColor(type) {
-        const colors = {
-            success: 'var(--neon-green)',
-            error: 'var(--neon-red)',
-            warning: 'var(--neon-yellow)',
-            info: 'var(--neon-cyan)'
-        };
-        return colors[type] || colors.info;
-    }
-
-    /**
-     * Helper: Get notification icon
-     */
-    getNotificationIcon(type) {
-        const icons = {
-            success: 'fas fa-check-circle',
-            error: 'fas fa-exclamation-circle',
-            warning: 'fas fa-warning',
-            info: 'fas fa-info-circle'
-        };
-        return icons[type] || icons.info;
-    }
-
-    /**
-     * Helper: Time ago
-     */
-    timeAgo(timestamp) {
-        const now = new Date();
-        const diff = now - new Date(timestamp);
-        const minutes = Math.floor(diff / 60000);
-
-        if (minutes < 1) return 'Vừa xong';
-        if (minutes < 60) return `${minutes}m trước`;
-
-        const hours = Math.floor(minutes / 60);
-        if (hours < 24) return `${hours}h trước`;
-
-        const days = Math.floor(hours / 24);
-        return `${days}d trước`;
-    }
-
-    /**
-     * Save notifications to localStorage
-     */
-    saveNotifications() {
-        try {
-            const toSave = this.notifications.slice(0, 20);
-            localStorage.setItem('westar-notifications', JSON.stringify(toSave));
-        } catch (error) {
-            console.error('Error saving notifications:', error);
-        }
-    }
-
-    /**
-     * Restore notifications from localStorage
-     */
-    restoreNotifications() {
-        try {
-            const saved = localStorage.getItem('westar-notifications');
-            if (saved) {
-                this.notifications = JSON.parse(saved);
-                this.updateBadge();
-            }
-        } catch (error) {
-            console.error('Error restoring notifications:', error);
-        }
+        /**
+         * Cập nhật badge
+         */
     }
 }
+
+/**
+ * Cập nhật badge
+ */
+updateBadge() {
+    const badge = document.getElementById('unread-badge');
+    if (!badge) return;
+
+    this.unreadCount = this.notifications.filter(n => !n.read).length;
+
+    if (this.unreadCount > 0) {
+        badge.textContent = this.unreadCount > 99 ? '99+' : this.unreadCount;
+        badge.style.display = 'flex';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+/**
+ * Xóa notification
+ */
+removeNotification(id) {
+    this.notifications = this.notifications.filter(n => n.id !== id);
+    const element = document.getElementById(`notification-${id}`);
+    if (element) element.remove();
+    this.updateBadge();
+    this.saveNotifications();
+}
+
+/**
+ * Clear all notifications
+ */
+clearAll() {
+    this.notifications = [];
+    this.unreadCount = 0;
+    this.updateBadge();
+    const container = document.getElementById('notification-container');
+    if (container) container.innerHTML = '';
+    this.saveNotifications();
+}
+
+/**
+ * Event listeners
+ */
+on(eventName, callback) {
+    if (!this.events.has(eventName)) {
+        this.events.set(eventName, []);
+    }
+    this.events.get(eventName).push(callback);
+}
+
+/**
+ * Trigger event
+ */
+emit(eventName, data) {
+    if (this.events.has(eventName)) {
+        this.events.get(eventName).forEach(callback => callback(data));
+    }
+}
+
+/**
+ * Helper: Get icon color
+ */
+getIconColor(type) {
+    const colors = {
+        success: 'var(--neon-green)',
+        error: 'var(--neon-red)',
+        warning: 'var(--neon-yellow)',
+        info: 'var(--neon-cyan)'
+    };
+    return colors[type] || colors.info;
+}
+
+/**
+ * Helper: Get notification icon
+ */
+getNotificationIcon(type) {
+    const icons = {
+        success: 'fas fa-check-circle',
+        error: 'fas fa-exclamation-circle',
+        warning: 'fas fa-warning',
+        info: 'fas fa-info-circle'
+    };
+    return icons[type] || icons.info;
+}
+
+/**
+ * Helper: Time ago
+ */
+timeAgo(timestamp) {
+    const now = new Date();
+    const diff = now - new Date(timestamp);
+    const minutes = Math.floor(diff / 60000);
+
+    if (minutes < 1) return 'Vừa xong';
+    if (minutes < 60) return `${minutes}m trước`;
+
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h trước`;
+
+    const days = Math.floor(hours / 24);
+    return `${days}d trước`;
+}
+
+/**
+ * Save notifications to localStorage
+ */
+saveNotifications() {
+    try {
+        const toSave = this.notifications.slice(0, 20);
+        localStorage.setItem('westar-notifications', JSON.stringify(toSave));
+    } catch (error) {
+        console.error('Error saving notifications:', error);
+    }
+}
+
+/**
+ * Restore notifications from localStorage
+ */
+restoreNotifications() {
+    try {
+        const saved = localStorage.getItem('westar-notifications');
+        if (saved) {
+            this.notifications = JSON.parse(saved);
+            this.updateBadge();
+        }
+    } catch (error) {
+        console.error('Error restoring notifications:', error);
+    }
+}
+    }
 
 // Add CSS animations
 const style = document.createElement('style');
