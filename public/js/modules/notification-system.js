@@ -48,6 +48,9 @@ class NotificationSystem {
      * Tạo bell icon trong header
      */
     createBellIcon() {
+        // Không hiển thị bell icon trên trang map-detail
+        if (window.location.pathname.includes('map-detail.html')) return;
+
         const header = document.querySelector('header') || document.querySelector('nav');
         if (!header) return;
 
