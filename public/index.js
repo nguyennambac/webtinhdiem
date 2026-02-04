@@ -148,13 +148,16 @@ const fetchRacerStatistics = async () => {
 
         const recordsSnapshot = await getDocs(collection(db, "raceRecords"));
 
-        // Thống kê tay đua
-        const racerStats = new Map();
-        // Thống kê combo xe/pet
+        // Thống kê combo xe/pet toàn cục
         const comboStats = new Map();
+        // **MỚI: Thống kê combo theo từng Map**
+        const mapComboStats = new Map();
 
         recordsSnapshot.docs.forEach(doc => {
             const data = doc.data();
+            const car = (data.car || "").trim();
+            const pet = (data.pet || "").trim();
+            const mName = (data.mapName || "").trim();
 
             // Đếm số trận của tay đua
             if (data.racerName) {
@@ -162,16 +165,25 @@ const fetchRacerStatistics = async () => {
                 racerStats.set(racerName, (racerStats.get(racerName) || 0) + 1);
             }
 
-            // Đếm combo xe/pet
-            if (data.car && data.pet) {
-                const comboKey = `${data.car.trim()}|${data.pet.trim()}`;
+            // Đếm combo xe/pet toàn cục
+            if (car && pet) {
+                const comboKey = `${car}|${pet}`;
                 const comboData = comboStats.get(comboKey) || {
-                    car: data.car.trim(),
-                    pet: data.pet.trim(),
+                    car: car,
+                    pet: pet,
                     count: 0
                 };
                 comboData.count += 1;
                 comboStats.set(comboKey, comboData);
+
+                // Thống kê theo Map
+                if (mName) {
+                    if (!mapComboStats.has(mName)) mapComboStats.set(mName, new Map());
+                    const mCombos = mapComboStats.get(mName);
+                    const mComboData = mCombos.get(comboKey) || { car: car, pet: pet, count: 0 };
+                    mComboData.count += 1;
+                    mCombos.set(comboKey, mComboData);
+                }
             }
         });
 
@@ -184,6 +196,14 @@ const fetchRacerStatistics = async () => {
         const topCombos = Array.from(comboStats.values())
             .sort((a, b) => b.count - a.count)
             .slice(0, 5);
+
+        // Chuyển mapComboStats thành window.MAP_COMBOS
+        window.MAP_COMBOS = {};
+        mapComboStats.forEach((combosMap, mName) => {
+            window.MAP_COMBOS[mName] = Array.from(combosMap.values())
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 4); // Lấy top 4 combo mỗi map
+        });
 
         // **MỚI: THỐNG KÊ TOP RECORD HOLDERS**
         const recordHolderStats = new Map();
@@ -1594,11 +1614,25 @@ const renderMapTables = () => {
 `;
 
                 carCellsHtml += `
-    <td class="px-2 py-3 text-center border-l border-slate-700">
-        <input type="text" id="${carInputId}" value="${carValue}" 
-            data-map-index="${mapIndex}" data-racer-index="${racerIndex}"
-            class="speed-input w-full text-center text-sm temp-edit-input" 
-            placeholder="Xe" list="car-suggestions" />
+    <td class="px-2 py-3 text-center border-l border-slate-700 relative group/cell">
+        <div class="flex items-center gap-1">
+            <input type="text" id="${carInputId}" value="${carValue}" 
+                data-map-index="${mapIndex}" data-racer-index="${racerIndex}"
+                class="speed-input w-full text-center text-sm temp-edit-input" 
+                placeholder="Xe" list="car-suggestions" />
+            
+            <div class="relative">
+                <button onclick="toggleComboMenu(event, ${mapIndex}, ${racerIndex}, '${map.name.replace(/'/g, "\\'")}')" 
+                        class="text-amber-400 hover:text-amber-300 transition-all opacity-0 group-hover/cell:opacity-100 flex-shrink-0" 
+                        title="Gợi ý Combo">
+                    <i class="fas fa-magic text-xs"></i>
+                </button>
+                <div id="combo-menu-${mapIndex}-${racerIndex}" 
+                     class="hidden absolute right-0 top-full z-[100] mt-2 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-2 text-left backdrop-blur-md">
+                     <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
     </td>
 `;
 
@@ -3734,6 +3768,12 @@ window.saveAllCarsPets = async () => {
                 if (carInput) {
                     const carValue = carInput.value.trim();
 
+                    // MỚI: Kiểm tra tính hợp lệ của xe (Bắt buộc trong thư viện)
+                    if (carValue && !ALL_CARS.some(c => c.name === carValue)) {
+                        errors.push(`Xe "${carValue}" (Map ${mapIndex + 1}, Tay đua ${racerIndex + 1}) không tồn tại trong thư viện!`);
+                        hasErrors = true;
+                    }
+
                     // Kiểm tra trùng xe
                     if (carValue) {
                         const mapUsedElsewhere = isCarUsedByRacerInOtherMap(newState, carValue, racerIndex, mapIndex);
@@ -3753,6 +3793,13 @@ window.saveAllCarsPets = async () => {
                 const petInput = document.getElementById(`pet-${mapIndex}-${racerIndex}`);
                 if (petInput) {
                     const petValue = petInput.value.trim();
+
+                    // MỚI: Kiểm tra tính hợp lệ của pet (Bắt buộc trong thư viện)
+                    if (petValue && !ALL_PETS.some(p => p.name === petValue)) {
+                        errors.push(`Pet "${petValue}" (Map ${mapIndex + 1}, Tay đua ${racerIndex + 1}) không tồn tại trong thư viện!`);
+                        hasErrors = true;
+                    }
+
                     if (newState.maps[mapIndex].pets[racerIndex] !== petValue) {
                         newState.maps[mapIndex].pets[racerIndex] = petValue;
                         hasChanges = true;
@@ -5859,5 +5906,70 @@ const sendRecordNotification = async (mapName, recordData) => {
 
     return await sendNotificationWithExtraData(notificationData);
 };
+
+// ================ COMBO SUGGESTION HELPERS ================
+window.toggleComboMenu = (event, mapIndex, racerIndex, mapName) => {
+    event.stopPropagation();
+    const menuId = `combo-menu-${mapIndex}-${racerIndex}`;
+    const menu = document.getElementById(menuId);
+
+    // Đóng tất cả menu khác
+    document.querySelectorAll('[id^="combo-menu-"]').forEach(m => {
+        if (m.id !== menuId) m.classList.add('hidden');
+    });
+
+    if (menu) {
+        if (menu.classList.contains('hidden')) {
+            // Populate combos
+            const combos = (window.MAP_COMBOS || {})[mapName.trim()] || [];
+            if (combos.length === 0) {
+                menu.innerHTML = `<div class="text-[10px] text-slate-500 p-2 italic text-center">Chưa có combo phổ biến cho map này</div>`;
+            } else {
+                let combosHtml = `<div class="text-[9px] uppercase font-bold text-slate-500 mb-2 px-2 border-b border-slate-800 pb-1">Gợi ý Combo (${mapName})</div>`;
+                combos.forEach(combo => {
+                    combosHtml += `
+                        <button onclick="applyCombo(${mapIndex}, ${racerIndex}, '${combo.car.replace(/'/g, "\\'")}', '${combo.pet.replace(/'/g, "\\'")}')" 
+                                class="w-full text-left p-2 hover:bg-slate-800 rounded mb-1 transition-colors flex flex-col group/item">
+                            <div class="text-[11px] font-bold text-cyan-400 group-hover/item:text-cyan-300">${combo.car}</div>
+                            <div class="text-[10px] text-pink-400 group-hover/item:text-pink-300 flex items-center gap-1">
+                                <i class="fas fa-paw text-[8px]"></i> ${combo.pet}
+                            </div>
+                        </button>
+                    `;
+                });
+                menu.innerHTML = combosHtml;
+            }
+            menu.classList.remove('hidden');
+        } else {
+            menu.classList.add('hidden');
+        }
+    }
+};
+
+window.applyCombo = (mapIndex, racerIndex, car, pet) => {
+    const carInput = document.getElementById(`car-${mapIndex}-${racerIndex}`);
+    const petInput = document.getElementById(`pet-${mapIndex}-${racerIndex}`);
+    if (carInput) {
+        carInput.value = car;
+        carInput.dispatchEvent(new Event('change'));
+    }
+    if (petInput) {
+        petInput.value = pet;
+        petInput.dispatchEvent(new Event('change'));
+    }
+
+    // Đóng menu
+    const menu = document.getElementById(`combo-menu-${mapIndex}-${racerIndex}`);
+    if (menu) menu.classList.add('hidden');
+
+    displayMessage(`Đã áp dụng combo cho Tay đua ${racerIndex + 1}`, false);
+};
+
+// Đóng menu khi click ra ngoài
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('[id^="combo-menu-"]') && !e.target.closest('button[onclick^="toggleComboMenu"]')) {
+        document.querySelectorAll('[id^="combo-menu-"]').forEach(m => m.classList.add('hidden'));
+    }
+});
 
 initFirebase();
